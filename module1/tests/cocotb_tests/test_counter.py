@@ -18,18 +18,18 @@ async def generate_clock(dut, period_ns=10):
     """Generate clock signal."""
     while True:
         dut.clk.value = 1
-        await Timer(period_ns // 2, units="ns")
+        await Timer(period_ns // 2, unit="ns")
         dut.clk.value = 0
-        await Timer(period_ns // 2, units="ns")
+        await Timer(period_ns // 2, unit="ns")
 
 
 async def reset_dut(dut, duration_ns=20):
     """Reset the DUT."""
     dut.rst_n.value = 0
     dut.enable.value = 0
-    await Timer(duration_ns, units="ns")
+    await Timer(duration_ns, unit="ns")
     dut.rst_n.value = 1
-    await Timer(10, units="ns")
+    await Timer(10, unit="ns")
 
 
 @cocotb.test()
@@ -64,7 +64,7 @@ async def test_counter_increment(dut):
     # Count for several cycles
     for expected_count in range(1, 11):
         await RisingEdge(dut.clk)
-        await Timer(1, units="ns")  # Wait for combinational logic
+        await Timer(1, unit="ns")  # Wait for combinational logic
         actual_count = int(dut.count.value)
         assert actual_count == expected_count, \
             f"Expected count {expected_count}, got {actual_count}"
@@ -84,21 +84,21 @@ async def test_counter_enable(dut):
     # Enable and count
     dut.enable.value = 1
     await RisingEdge(dut.clk)
-    await Timer(1, units="ns")
+    await Timer(1, unit="ns")
     assert dut.count.value == 1, "Counter should increment when enabled"
     
     # Disable and check counter doesn't increment
     dut.enable.value = 0
     count_before = int(dut.count.value)
     await RisingEdge(dut.clk)
-    await Timer(1, units="ns")
+    await Timer(1, unit="ns")
     count_after = int(dut.count.value)
     assert count_after == count_before, "Counter should not increment when disabled"
     
     # Re-enable and verify it continues
     dut.enable.value = 1
     await RisingEdge(dut.clk)
-    await Timer(1, units="ns")
+    await Timer(1, unit="ns")
     assert dut.count.value == count_before + 1, "Counter should resume incrementing when re-enabled"
 
 
@@ -124,7 +124,7 @@ async def test_counter_overflow(dut):
     
     for _ in range(COUNT_TO_OVERFLOW):
         await RisingEdge(dut.clk)
-        await Timer(1, units="ns")
+        await Timer(1, unit="ns")
     
     # Check we're at the expected pre-overflow value
     assert dut.count.value == COUNT_TO_OVERFLOW, \
@@ -133,7 +133,7 @@ async def test_counter_overflow(dut):
     # Next increment should wrap to 0 (or continue to 255, depending on implementation)
     # This tests the counter's overflow behavior
     await RisingEdge(dut.clk)
-    await Timer(1, units="ns")
+    await Timer(1, unit="ns")
     # Note: Counter behavior depends on implementation:
     # - Wrapping counter: 254 -> 255 -> 0 (wraps on next increment)
     # - Saturating counter: 254 -> 255 -> 255 (saturates at max)

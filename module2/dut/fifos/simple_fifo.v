@@ -44,14 +44,14 @@ module simple_fifo (
                 write_ptr <= write_ptr + 1;
                 count <= count + 1;
             end
-            
+
             // Read operation
             if (read_en && !empty) begin
                 data_out <= mem[read_ptr[3:0]];
                 read_ptr <= read_ptr + 1;
                 count <= count - 1;
             end
-            
+
             // Update flags
             full <= (count == 16);
             empty <= (count == 0);

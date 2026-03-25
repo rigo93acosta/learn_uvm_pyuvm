@@ -29,6 +29,7 @@ module1/
 ### Quick Start
 
 **Run all examples using the orchestrator script:**
+
 ```bash
 # Run all Python examples
 ./scripts/module1.sh
@@ -49,6 +50,7 @@ module1/
 ```
 
 **Run examples individually:**
+
 ```bash
 # Activate virtual environment (if using one)
 source .venv/bin/activate
@@ -97,6 +99,7 @@ make SIM=verilator TEST=test_counter
 #### Example 1.1: Transaction Classes (`module1/examples/python_basics/transaction.py`)
 
 **What it demonstrates:**
+
 - Base `Transaction` class with class variables (`_id_counter`)
 - Instance variables (`id`, `data`, `timestamp`)
 - Special methods: `__init__()`, `__str__()`, `__repr__()`, `__eq__()`, `__hash__()`
@@ -105,6 +108,7 @@ make SIM=verilator TEST=test_counter
 - Using `super()` to call parent class methods
 
 **Execution:**
+
 ```bash
 # Using orchestrator script
 ./scripts/module1.sh --python-basics
@@ -114,6 +118,7 @@ python3 module1/examples/python_basics/transaction.py
 ```
 
 **Expected Output:**
+
 ```
 ============================================================
 Module 1 Example 1.1: Python Class Basics
@@ -147,6 +152,7 @@ Example completed successfully!
 ```
 
 **Key Concepts:**
+
 - **Class Variables**: `_id_counter` is shared across all instances
 - **Instance Variables**: Each transaction has its own `id`, `data`, `timestamp`
 - **Special Methods**: Enable Pythonic behavior (string representation, equality, hashing)
@@ -175,6 +181,7 @@ Example completed successfully!
 #### Example 1.2: Decorators and Context Managers (`module1/examples/decorators/decorators_example.py`)
 
 **What it demonstrates:**
+
 - **Function Decorators**: `@timing_decorator` and `@log_calls_decorator` wrap functions
 - **Decorator Stacking**: Multiple decorators can be applied to the same function
 - **Context Manager Class**: `VerificationContext` implements `__enter__()` and `__exit__()`
@@ -183,6 +190,7 @@ Example completed successfully!
 - **Logging Integration**: Decorators and context managers use Python's logging module
 
 **Execution:**
+
 ```bash
 # Using orchestrator script
 ./scripts/module1.sh --decorators
@@ -192,6 +200,7 @@ python3 module1/examples/decorators/decorators_example.py
 ```
 
 **Expected Output:**
+
 ```
 ============================================================
 Module 1 Example 1.2: Decorators and Context Managers
@@ -221,6 +230,7 @@ Example completed successfully!
 ```
 
 **Key Concepts:**
+
 - **Decorators**: Functions that modify other functions without changing their code
 - **`functools.wraps`**: Preserves function metadata when decorating
 - **Context Managers**: Ensure proper resource cleanup using `with` statements
@@ -255,6 +265,7 @@ Example completed successfully!
 #### Example 1.3: Async/Await Patterns (`module1/examples/async_await/async_example.py`)
 
 **What it demonstrates:**
+
 - **Async Functions**: Defining coroutines with `async def`
 - **Awaiting Operations**: Using `await` to wait for async operations
 - **Clock Generation**: Simulating clock signals with async functions
@@ -265,6 +276,7 @@ Example completed successfully!
 - **Queues**: Using `asyncio.Queue` for communication between coroutines
 
 **Execution:**
+
 ```bash
 # Using orchestrator script
 ./scripts/module1.sh --async-await
@@ -274,6 +286,7 @@ python3 module1/examples/async_await/async_example.py
 ```
 
 **Expected Output:**
+
 ```
 ============================================================
 Module 1 Example 1.3: Async/Await for Simulation
@@ -301,6 +314,7 @@ Example completed successfully!
 ```
 
 **Key Concepts:**
+
 - **Coroutines**: Functions defined with `async def` that can be paused and resumed
 - **Event Loop**: `asyncio.run()` creates and manages the event loop
 - **Concurrency**: Multiple coroutines can run concurrently (not in parallel)
@@ -428,6 +442,7 @@ Example completed successfully!
 #### Example 1.4: Data Structures (`module1/examples/data_structures/data_structures_example.py`)
 
 **What it demonstrates:**
+
 - **`deque`**: Double-ended queue for FIFO/LIFO operations in `TransactionQueue`
 - **`defaultdict`**: Dictionary with default values for scoreboard
 - **`Counter`**: Counting occurrences for statistics
@@ -438,6 +453,7 @@ Example completed successfully!
 - **Coverage Collection**: Tracking coverage bins and hit counts
 
 **Execution:**
+
 ```bash
 # Using orchestrator script
 ./scripts/module1.sh --data-structures
@@ -447,6 +463,7 @@ python3 module1/examples/data_structures/data_structures_example.py
 ```
 
 **Expected Output:**
+
 ```
 ============================================================
 Module 1: Data Structures for Verification
@@ -487,6 +504,7 @@ Example completed successfully!
 ```
 
 **Key Concepts:**
+
 - **`deque`**: Efficient FIFO/LIFO operations, thread-safe for async code
 - **`defaultdict`**: Automatically creates default values for missing keys
 - **`Counter`**: Specialized dictionary for counting occurrences
@@ -518,6 +536,7 @@ Example completed successfully!
 #### Example 1.5: Error Handling and Logging (`module1/examples/error_handling/error_handling_example.py`)
 
 **What it demonstrates:**
+
 - **Custom Exceptions**: `VerificationError`, `MismatchError`, `TimeoutError`
 - **Exception Handling**: Try/except blocks with specific exception types
 - **Exception Chaining**: Using `raise ... from ...` to chain exceptions
@@ -528,6 +547,7 @@ Example completed successfully!
 - **Verification Statistics**: Tracking pass/fail/error counts
 
 **Execution:**
+
 ```bash
 # Using orchestrator script
 ./scripts/module1.sh --error-handling
@@ -537,6 +557,7 @@ python3 module1/examples/error_handling/error_handling_example.py
 ```
 
 **Expected Output:**
+
 ```
 ============================================================
 Module 1: Error Handling and Logging
@@ -573,6 +594,7 @@ Check 'verification.log' for detailed logs
 ```
 
 **Key Concepts:**
+
 - **Custom Exceptions**: Create domain-specific exceptions for better error handling
 - **Exception Chaining**: Preserve original exception context with `raise ... from ...`
 - **Retry Logic**: Implement robust error recovery mechanisms
@@ -598,26 +620,32 @@ By the end of this module, you should be able to:
 ## Test Cases
 
 ### Test Case 1.1: Python Class Basics
+
 **Objective**: Create a simple transaction class with inheritance
 
 **Topics**:
+
 - Class definition
 - Instance variables
 - Methods
 - Inheritance
 
 ### Test Case 1.2: Decorators and Async
+
 **Objective**: Use decorators and async functions
 
 **Topics**:
+
 - Function decorators
 - Async function definition
 - Await usage
 
 ### Test Case 1.3: Simple Verification Test
+
 **Objective**: Create a basic verification testbench
 
 **Topics**:
+
 - Testbench structure
 - Clock generation
 - Signal driving
@@ -626,6 +654,7 @@ By the end of this module, you should be able to:
 #### cocotb Test: AND Gate (`module1/tests/cocotb_tests/test_and_gate.py`)
 
 **What it demonstrates:**
+
 - **Test Structure**: Using `@cocotb.test()` decorator
 - **Signal Access**: Reading and writing DUT signals (`dut.a`, `dut.b`, `dut.y`)
 - **Timing Control**: Using `await Timer()` for simulation time
@@ -634,6 +663,7 @@ By the end of this module, you should be able to:
 - **Truth Table Testing**: Systematic testing of all input combinations
 
 **Execution:**
+
 ```bash
 # Using orchestrator script
 ./scripts/module1.sh --cocotb-tests
@@ -644,6 +674,7 @@ make SIM=verilator TEST=test_and_gate
 ```
 
 **Expected Output:**
+
 ```
      0.00ns INFO     cocotb.regression                  Running test_and_gate_basic (1/3)
      0.00ns INFO     cocotb.regression                  Running test_and_gate_truth_table (2/3)
@@ -652,6 +683,7 @@ make SIM=verilator TEST=test_and_gate
 ```
 
 **Key Concepts:**
+
 - **`@cocotb.test()`**: Decorator marks function as a test
 - **DUT Access**: `dut.signal_name.value` to read/write signals
 - **`Timer()`**: Advances simulation time
@@ -661,6 +693,7 @@ make SIM=verilator TEST=test_and_gate
 #### cocotb Test: Counter (`module1/tests/cocotb_tests/test_counter.py`)
 
 **What it demonstrates:**
+
 - **Clock Generation**: Creating clock signal with `generate_clock()` coroutine
 - **Reset Sequence**: Implementing reset with proper timing
 - **Sequential Logic Testing**: Testing clocked (sequential) circuits
@@ -669,6 +702,7 @@ make SIM=verilator TEST=test_and_gate
 - **Multiple Test Scenarios**: Reset, increment, enable, overflow tests
 
 **Execution:**
+
 ```bash
 # Using orchestrator script
 ./scripts/module1.sh --cocotb-tests
@@ -679,6 +713,7 @@ make SIM=verilator TEST=test_counter
 ```
 
 **Expected Output:**
+
 ```
      0.00ns INFO     cocotb.regression                  Running test_counter_reset (1/4)
      0.00ns INFO     cocotb.regression                  Running test_counter_increment (2/4)
@@ -688,6 +723,7 @@ make SIM=verilator TEST=test_counter
 ```
 
 **Key Concepts:**
+
 - **Clock Generation**: Background coroutine for clock signal
 - **`cocotb.start_soon()`**: Start background coroutines
 - **`RisingEdge()`**: Wait for clock edge
@@ -697,6 +733,7 @@ make SIM=verilator TEST=test_counter
 #### pyuvm Test: AND Gate (`module1/tests/pyuvm_tests/test_and_gate_uvm.py`)
 
 **What it demonstrates:**
+
 - **UVM Test Structure**: `@uvm_test()` decorator
 - **UVM Phases**: `build_phase()`, `run_phase()`, `check_phase()`
 - **UVM Components**: `uvm_test`, `uvm_env`, `uvm_agent`, `uvm_driver`, `uvm_monitor`
@@ -705,6 +742,7 @@ make SIM=verilator TEST=test_counter
 - **Objections**: Using `raise_objection()` and `drop_objection()` for test control
 
 **Execution:**
+
 ```bash
 # Using orchestrator script
 ./scripts/module1.sh --pyuvm-tests
@@ -717,6 +755,7 @@ make SIM=verilator TEST=test_and_gate_uvm
 **Note**: This is a structural example showing UVM patterns. Full integration with cocotb requires additional setup.
 
 **Key Concepts:**
+
 - **UVM Phases**: Build, connect, run, check phases
 - **Component Hierarchy**: Test → Environment → Agent → Driver/Monitor
 - **Sequences**: Generate and send transactions
@@ -788,6 +827,7 @@ After completing this module, proceed to [Module 2: cocotb Fundamentals](MODULE2
 ### Common Issues
 
 **Issue: Virtual environment not found**
+
 ```bash
 # Solution: Create virtual environment first
 python3 -m venv .venv
@@ -796,6 +836,7 @@ source .venv/bin/activate
 ```
 
 **Issue: cocotb tests fail with "simulator not found"**
+
 ```bash
 # Solution: Verify Verilator is installed
 verilator --version
@@ -804,6 +845,7 @@ verilator --version
 ```
 
 **Issue: Import errors in Python examples**
+
 ```bash
 # Solution: Ensure you're using the correct Python environment
 source .venv/bin/activate  # If using venv
@@ -811,6 +853,7 @@ python3 --version  # Should be 3.8+
 ```
 
 **Issue: Makefile errors when running tests**
+
 ```bash
 # Solution: Ensure cocotb is properly installed
 python3 -c "import cocotb; print(cocotb.__version__)"
@@ -825,4 +868,3 @@ make SIM=verilator TEST=test_and_gate
 - Review the `module1/README.md` for directory structure
 - Run examples individually to isolate issues
 - Check log files (e.g., `verification.log` for error handling example)
-

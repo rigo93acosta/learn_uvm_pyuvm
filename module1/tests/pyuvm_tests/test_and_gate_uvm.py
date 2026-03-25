@@ -9,7 +9,7 @@ Demonstrates:
 """
 
 from pyuvm import *
-
+import pyuvm
 
 class AndGateTransaction(uvm_sequence_item):
     """Transaction for AND gate test."""
@@ -154,6 +154,7 @@ class AndGateEnv(uvm_env):
 
 # Note: @uvm_test() decorator removed to avoid import-time TypeError
 # Using cocotb test wrapper instead for compatibility with cocotb test discovery
+@pyuvm.test()
 class AndGateTest(uvm_test):
     """Test class for AND gate."""
     
@@ -190,5 +191,5 @@ if __name__ == "__main__":
     # Note: This is a simplified example
     # In practice, you would use cocotb to run this with a simulator
     print("This is a pyuvm test structure example.")
-    print("To run with cocotb, use the Makefile in the test directory.")
+    print("To run with cocotb, use the Makefile in the test directory.")    
 

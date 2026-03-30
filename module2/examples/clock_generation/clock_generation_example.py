@@ -14,9 +14,9 @@ async def generate_clock_simple(dut, period_ns=10):
     """
     while True:
         dut.clk.value = 1
-        await Timer(period_ns // 2, units="ns")
+        await Timer(period_ns // 2, unit="ns")
         dut.clk.value = 0
-        await Timer(period_ns // 2, units="ns")
+        await Timer(period_ns // 2, unit="ns")
 
 
 @cocotb.test()
@@ -25,7 +25,7 @@ async def test_clock_class(dut):
     Demonstrates using Clock class.
     """
     # Create clock with 10ns period
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     
     # Start clock
     cocotb.start_soon(clock.start())
@@ -46,8 +46,8 @@ async def test_multiple_clocks(dut):
     In practice, you'd have multiple clock signals.
     """
     # Create clocks with different periods
-    clock_fast = Clock(dut.clk, 5, units="ns")
-    clock_slow = Clock(dut.clk, 20, units="ns")
+    clock_fast = Clock(dut.clk, 5, unit="ns")
+    clock_slow = Clock(dut.clk, 20, unit="ns")
     
     # Start fast clock
     cocotb.start_soon(clock_fast.start())
@@ -64,7 +64,7 @@ async def test_clock_gating(dut):
     """
     Demonstrates clock gating pattern.
     """
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     clock_enable = True
@@ -75,14 +75,14 @@ async def test_clock_gating(dut):
             await RisingEdge(dut.clk)
             if not clock_enable:
                 print("Clock gated")
-                await Timer(50, units="ns")  # Hold for gated period
+                await Timer(50, unit="ns")  # Hold for gated period
     
     cocotb.start_soon(gated_clock())
     
     # Enable/disable clock
     await RisingEdge(dut.clk)
     clock_enable = False
-    await Timer(30, units="ns")
+    await Timer(30, unit="ns")
     clock_enable = True
     await RisingEdge(dut.clk)
 
@@ -99,7 +99,7 @@ async def test_clock_stopping(dut):
     
     This example demonstrates the pattern for controlled clock stopping.
     """
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     clock_handle = cocotb.start_soon(clock.start())
     
     # Run for a few cycles
@@ -114,9 +114,9 @@ async def test_clock_stopping(dut):
     # async def controlled_clock():
     #     while not stop_clock:
     #         dut.clk.value = 1
-    #         await Timer(period_ns // 2, units="ns")
+    #         await Timer(period_ns // 2, unit="ns")
     #         dut.clk.value = 0
-    #         await Timer(period_ns // 2, units="ns")
+    #         await Timer(period_ns // 2, unit="ns")
     # 
     # Then set stop_clock = True when you want to stop
     
@@ -128,7 +128,7 @@ async def test_clock_division(dut):
     """
     Demonstrates clock division pattern.
     """
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     divided_clock = 0

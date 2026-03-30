@@ -64,7 +64,7 @@ async def test_readonly_trigger(dut):
     """
     Demonstrates ReadOnly trigger (end of time step).
     """
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     dut.rst_n.value = 1
@@ -72,13 +72,13 @@ async def test_readonly_trigger(dut):
     dut.d.value = 0xAA
     
     # Drive signal
-    await RisingEdge(dut.clk)
+    await dut.clk.rising_edge
     
     # Wait for ReadOnly (end of time step)
     await ReadOnly()
     
     # Now signal should be stable
-    print(f"Signal value after ReadOnly: 0x{dut.q.value.integer:02X}")
+    cocotb.log.info(f"Signal value after ReadOnly: 0x{dut.q.value.to_unsigned():02X}")
 
 
 @cocotb.test()

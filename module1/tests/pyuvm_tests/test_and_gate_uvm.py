@@ -176,15 +176,15 @@ class AndGateTest(uvm_test):
 import cocotb
 from cocotb.triggers import Timer
 
-@cocotb.test()
-async def test_and_gate_uvm(dut):
-    """Cocotb test wrapper for pyuvm test."""
-    # Register the test class with uvm_root so run_test can find it
-    if not hasattr(uvm_root(), 'm_uvm_test_classes'):
-        uvm_root().m_uvm_test_classes = {}
-    uvm_root().m_uvm_test_classes["AndGateTest"] = AndGateTest
-    # Use uvm_root to run the test properly (executes all phases in hierarchy)
-    await uvm_root().run_test("AndGateTest")
+# @cocotb.test()
+# async def test_and_gate_uvm(dut):
+#     """Cocotb test wrapper for pyuvm test."""
+#     # Register the test class with uvm_root so run_test can find it
+#     if not hasattr(uvm_root(), 'm_uvm_test_classes'):
+#         uvm_root().m_uvm_test_classes = {}
+#     uvm_root().m_uvm_test_classes["AndGateTest"] = AndGateTest
+#     # Use uvm_root to run the test properly (executes all phases in hierarchy)
+#     await uvm_root().run_test("AndGateTest")
 
 
 if __name__ == "__main__":

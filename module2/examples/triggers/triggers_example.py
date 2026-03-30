@@ -45,18 +45,18 @@ async def test_timer_trigger(dut):
     """
     Demonstrates timer triggers.
     """
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     # Wait for specific time
-    print("Waiting 50ns...")
-    await Timer(50, units="ns")
-    print("50ns elapsed")
+    cocotb.log.info("Waiting 50ns...")
+    await Timer(50, unit="ns")
+    cocotb.log.info("50ns elapsed")
     
     # Wait for multiple time periods
     for delay in [10, 20, 30]:
-        await Timer(delay, units="ns")
-        print(f"Waited {delay}ns")
+        await Timer(delay, unit="ns")
+        cocotb.log.info(f"Waited {delay}ns")
 
 
 @cocotb.test()

@@ -31,16 +31,17 @@ async def test_signal_access_basic(dut):
     await Timer(10, unit="ns")
     
     # Read initial values
-    print(f"Initial q value: {dut.q.value.to_unsigned()}")
-    print(f"Initial q value (integer): {dut.q.value.to_unsigned()}")
-    print(f"Initial q value (binary): {dut.q.value}")
+    cocotb.log.info(f"Initial q value: {dut.q.value.to_unsigned()}")
+    cocotb.log.info(f"Initial q value (integer): {dut.q.value.to_unsigned()}")
+    cocotb.log.info(f"Initial q value (binary): {dut.q.value}")
+    cocotb.log.info(f"Width of q signal: {len(dut.q)} bits") # Accessing signal width
     
     # Deassert reset
     dut.rst_n.value = 1
     await Timer(10, unit="ns")
     
     # Read after reset
-    print(f"After reset q value: {dut.q.value.to_unsigned()}")
+    cocotb.log.info(f"After reset q value: {dut.q.value.to_unsigned()}")
     
     # Enable and write data
     dut.enable.value = 1
@@ -49,7 +50,7 @@ async def test_signal_access_basic(dut):
     await Timer(1, unit="ns")
     
     # Read output
-    print(f"After write q value: 0x{dut.q.value.to_unsigned():02X}")
+    cocotb.log.info(f"After write q value: 0x{dut.q.value.to_unsigned():02X}")
     assert dut.q.value.to_unsigned() == 0xAB, f"Expected 0xAB, got 0x{dut.q.value.to_unsigned():02X}"
 
 

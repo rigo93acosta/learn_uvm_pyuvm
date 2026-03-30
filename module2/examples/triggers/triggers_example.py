@@ -86,15 +86,15 @@ async def test_combine_trigger(dut):
     """
     Demonstrates combining multiple triggers.
     """
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     dut.rst_n.value = 1
     
     # Wait for clock edge AND timer
-    print("Waiting for clock edge and timer...")
-    await Combine(RisingEdge(dut.clk), Timer(5, units="ns"))
-    print("Both conditions met")
+    cocotb.log.info("Waiting for clock edge and timer...")
+    await Combine(dut.clk.rising_edge, Timer(5, unit="ns"))
+    cocotb.log.info("Both conditions met")
 
 
 @cocotb.test()

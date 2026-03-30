@@ -33,7 +33,7 @@ async def test_clock_class(dut):
     # Wait for a few clock cycles
     for i in range(5):
         await RisingEdge(dut.clk)
-        print(f"Clock cycle {i+1}")
+        cocotb.log.info(f"Clock cycle {i+1}")
     
     # Clock continues running in background
 
@@ -56,7 +56,7 @@ async def test_multiple_clocks(dut):
     for i in range(10):
         await RisingEdge(dut.clk)
         if i % 2 == 0:
-            print(f"Fast clock cycle {i//2 + 1}")
+            cocotb.log.info(f"Fast clock cycle {i//2 + 1}")
 
 
 @cocotb.test()
@@ -74,15 +74,16 @@ async def test_clock_gating(dut):
         while True:
             await RisingEdge(dut.clk)
             if not clock_enable:
-                print("Clock gated")
+                cocotb.log.info("Clock gated")
                 await Timer(50, unit="ns")  # Hold for gated period
+                cocotb.log.info("Clock ungated")
     
     cocotb.start_soon(gated_clock())
     
     # Enable/disable clock
     await RisingEdge(dut.clk)
     clock_enable = False
-    await Timer(30, unit="ns")
+    await Timer(60, unit="ns")
     clock_enable = True
     await RisingEdge(dut.clk)
 
@@ -144,7 +145,7 @@ async def test_clock_division(dut):
             if count >= divide_by:
                 divided_clock = 1 - divided_clock
                 count = 0
-                print(f"Divided clock: {divided_clock}")
+                cocotb.log.info(f"Divided clock: {divided_clock}")
     
     cocotb.start_soon(clock_divider())
     

@@ -7,35 +7,37 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import (
     Timer, RisingEdge, FallingEdge, Edge,
-    ReadOnly, ReadWrite, Combine, First, Lock
+    ReadOnly, ReadWrite, Combine, First, Lock,
+    SimTimeoutError
 )
-from cocotb.result import SimTimeoutError
-
 
 @cocotb.test()
 async def test_edge_triggers(dut):
     """
     Demonstrates edge triggers.
     """
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     dut.rst_n.value = 1
     
     # Rising edge trigger
-    print("Waiting for rising edge...")
-    await RisingEdge(dut.clk)
-    print("Rising edge detected")
+    cocotb.log.info("Waiting for rising edge...")
+    # await RisingEdge(dut.clk) # Obsolete, use value_change instead
+    await dut.clk.rising_edge
+    cocotb.log.info("Rising edge detected")
     
     # Falling edge trigger
-    print("Waiting for falling edge...")
-    await FallingEdge(dut.clk)
-    print("Falling edge detected")
+    cocotb.log.info("Waiting for falling edge...")
+    # await FallingEdge(dut.clk) # Obsolete, use value_change instead
+    await dut.clk.falling_edge
+    cocotb.log.info("Falling edge detected")
     
     # Any edge trigger
-    print("Waiting for any edge...")
-    await Edge(dut.clk)
-    print("Edge detected")
+    cocotb.log.info("Waiting for any edge...")
+    # await Edge(dut.clk) # Obsolete, use value_change instead
+    await dut.clk.value_change
+    cocotb.log.info("Edge detected")
 
 
 @cocotb.test()

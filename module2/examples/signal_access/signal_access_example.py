@@ -66,23 +66,23 @@ async def test_signal_types(dut):
     dut.enable.value = 1
     
     # Test single-bit signal
-    print(f"enable signal type: {type(dut.enable.value)}")
-    print(f"enable value: {int(dut.enable.value)}")
+    cocotb.log.info(f"enable signal type: {type(dut.enable.value)}")
+    cocotb.log.info(f"enable value: {int(dut.enable.value)}")
     
     # Test multi-bit signal
-    print(f"d signal width: {len(dut.d)}")
-    print(f"q signal width: {len(dut.q)}")
+    cocotb.log.info(f"d signal width: {len(dut.d)}")
+    cocotb.log.info(f"q signal width: {len(dut.q)}")
     
     # Test different value assignments
     dut.d.value = 0x12  # Integer
     await RisingEdge(dut.clk)
     await Timer(1, unit="ns")
-    print(f"Assigned 0x12, got: 0x{dut.q.value.to_unsigned():02X}")
+    cocotb.log.info(f"Assigned 0x12, got: 0x{dut.q.value.to_unsigned():02X}")
     
     dut.d.value = 0b10101010  # Binary literal
     await RisingEdge(dut.clk)
     await Timer(1, unit="ns")
-    print(f"Assigned 0b10101010, got: 0x{dut.q.value.to_unsigned():02X}")
+    cocotb.log.info(f"Assigned 0b10101010, got: 0x{dut.q.value.to_unsigned():02X}")
     assert dut.q.value.to_unsigned() == 0xAA
 
 
@@ -98,17 +98,17 @@ async def test_signal_properties(dut):
     dut.enable.value = 1
     
     # Test signal properties
-    print(f"Signal name: {dut.q._name}")
-    print(f"Signal path: {dut.q._path}")
-    print(f"Signal width: {len(dut.q)}")
+    cocotb.log.info(f"Signal name: {dut.q._name}")
+    cocotb.log.info(f"Signal path: {dut.q._path}")
+    cocotb.log.info(f"Signal width: {len(dut.q)}")
     
     # Test value representations
     dut.d.value = 0x5A
     await RisingEdge(dut.clk)
     await Timer(1, unit="ns")
     
-    print(f"Integer: {dut.q.value.to_unsigned()}")
-    print(f"Binary: {dut.q.value}")
-    print(f"Hex: {hex(dut.q.value.to_unsigned())}")
-    print(f"String: {str(dut.q.value.to_unsigned())}")
+    cocotb.log.info(f"Integer: {dut.q.value.to_unsigned()}")
+    cocotb.log.info(f"Binary: {dut.q.value}")
+    cocotb.log.info(f"Hex: {hex(dut.q.value.to_unsigned())}")
+    cocotb.log.info(f"String: {str(dut.q.value.to_unsigned())}")
 

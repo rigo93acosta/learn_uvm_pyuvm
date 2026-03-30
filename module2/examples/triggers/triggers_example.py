@@ -102,21 +102,21 @@ async def test_first_trigger(dut):
     """
     Demonstrates First trigger (first to occur).
     """
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     dut.rst_n.value = 1
     
     # Wait for first of multiple triggers
-    print("Waiting for first trigger...")
+    cocotb.log.info("Waiting for first trigger...")
     try:
         await First(
             RisingEdge(dut.clk),
-            Timer(100, units="ns")
+            Timer(100, unit="ns")
         )
-        print("Clock edge occurred first")
+        cocotb.log.info("Clock edge occurred first")
     except SimTimeoutError:
-        print("Timer would occur first")
+        cocotb.log.info("Timer would occur first")
 
 
 @cocotb.test()
@@ -124,15 +124,15 @@ async def test_timeout_handling(dut):
     """
     Demonstrates timeout handling with triggers.
     """
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     # Wait with timeout
     try:
-        await Timer(1000, units="ns")
-        print("Operation completed")
+        await Timer(1000, unit="ns")
+        cocotb.log.info("Operation completed")
     except SimTimeoutError:
-        print("Operation timed out")
+        cocotb.log.info("Operation timed out")
 
 
 @cocotb.test()
@@ -140,23 +140,23 @@ async def test_parallel_triggers(dut):
     """
     Demonstrates parallel coroutines with triggers.
     """
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     async def monitor_clock():
         for i in range(5):
             await RisingEdge(dut.clk)
-            print(f"Monitor: Clock cycle {i+1}")
+            cocotb.log.info(f"Monitor: Clock cycle {i+1}")
     
     async def monitor_timer():
         for i in range(3):
-            await Timer(20, units="ns")
-            print(f"Monitor: Timer {i+1}")
+            await Timer(20, unit="ns")
+            cocotb.log.info(f"Monitor: Timer {i+1}")
     
     # Run both in parallel
     await cocotb.start_soon(monitor_clock())
     await cocotb.start_soon(monitor_timer())
     
     # Wait for completion
-    await Timer(100, units="ns")
+    await Timer(100, unit="ns")
 

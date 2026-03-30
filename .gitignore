@@ -1,3 +1,4 @@
 /module1/tests/cocotb_tests/sim_build/
 /module1/tests/pyuvm_tests/sim_build/
 /module2/examples/signal_access/sim_build/*
+/module2/examples/clock_generation/sim_build/*

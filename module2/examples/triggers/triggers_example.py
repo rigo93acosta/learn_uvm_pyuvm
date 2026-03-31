@@ -145,7 +145,7 @@ async def test_parallel_triggers(dut):
     
     async def monitor_clock():
         for i in range(5):
-            await RisingEdge(dut.clk)
+            await dut.clk.rising_edge
             cocotb.log.info(f"Monitor: Clock cycle {i+1}")
     
     async def monitor_timer():

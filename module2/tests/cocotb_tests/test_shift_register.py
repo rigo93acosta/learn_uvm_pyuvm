@@ -67,9 +67,9 @@ async def test_shift_register_operation(dut):
     # Alternative calculation: build binary string and convert
     # expected = int(''.join(str(b) for b in test_data), 2)
     
-    assert dut.q.value.integer == expected, \
+    assert dut.q.value.to_unsigned() == expected, \
         f"Expected 0b{expected:08b} (from test_data {test_data}), " \
-        f"got 0b{dut.q.value.integer:08b}"
+        f"got 0b{dut.q.value.to_unsigned():08b}"
 
 
 @cocotb.test()

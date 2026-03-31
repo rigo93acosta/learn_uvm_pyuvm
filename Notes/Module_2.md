@@ -124,4 +124,16 @@ Se define una clase que encapsula toda la información necesaria para una operac
 
 > En el código, cuando `enable` es 0, el `expected_result` se pone en `None`. Esto es una forma elegante de decirle al test: "En esta transacción no espero que el registro cambie, así que no verifiques nada (o verifica que mantuvo el valor anterior)".
 
+# Test 
 
+## Simple Register
+
+En este modulo de test se verificaron los siguientes comportamientos:
+
+* Reset
+* Write
+* Enable
+* Secuencia de datos
+* 
+
+## Shift Register

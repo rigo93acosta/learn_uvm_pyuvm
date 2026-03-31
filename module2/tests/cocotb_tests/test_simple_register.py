@@ -93,7 +93,7 @@ async def test_register_all_values(dut):
     
     for value in test_values:
         dut.d.value = value
-        await RisingEdge(dut.clk)
+        await dut.clk.rising_edge
         await Timer(1, unit="ns")
         assert dut.q.value.to_unsigned() == value, \
             f"Failed for value 0x{value:02X}, got 0x{dut.q.value.to_unsigned():02X}"

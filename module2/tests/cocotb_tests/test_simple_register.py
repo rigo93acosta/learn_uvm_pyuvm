@@ -21,28 +21,28 @@ async def reset_dut(dut, duration_ns=50, propagation_delay_ns=10):
     dut.rst_n.value = 0
     dut.enable.value = 0
     dut.d.value = 0
-    await Timer(duration_ns, units="ns")
+    await Timer(duration_ns, unit="ns")
     dut.rst_n.value = 1
     # Wait for reset signal to propagate through DUT logic
-    await Timer(propagation_delay_ns, units="ns")
+    await Timer(propagation_delay_ns, unit="ns")
 
 
 @cocotb.test()
 async def test_register_reset(dut):
     """Test register reset functionality."""
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     await reset_dut(dut)
     
     # Verify reset state
-    assert dut.q.value.integer == 0, "Register should be reset to 0"
+    assert dut.q.value.to_unsigned() == 0, "Register should be reset to 0"
 
 
 @cocotb.test()
 async def test_register_write(dut):
     """Test register write functionality."""
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     await reset_dut(dut)
@@ -50,16 +50,16 @@ async def test_register_write(dut):
     # Enable and write
     dut.enable.value = 1
     dut.d.value = 0xAB
-    await RisingEdge(dut.clk)
-    await Timer(1, units="ns")
+    await dut.clk.rising_edge
+    await Timer(1, unit="ns")
     
-    assert dut.q.value.integer == 0xAB, "Register should store written value"
+    assert dut.q.value.to_unsigned() == 0xAB, "Register should store written value"
 
 
 @cocotb.test()
 async def test_register_enable(dut):
     """Test register enable control."""
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     await reset_dut(dut)
@@ -67,22 +67,22 @@ async def test_register_enable(dut):
     # Write with enable
     dut.enable.value = 1
     dut.d.value = 0x12
-    await RisingEdge(dut.clk)
-    await Timer(1, units="ns")
-    assert dut.q.value.integer == 0x12
+    await dut.clk.rising_edge
+    await Timer(1, unit="ns")
+    assert dut.q.value.to_unsigned() == 0x12
     
     # Try to write with enable off
     dut.enable.value = 0
     dut.d.value = 0x34
-    await RisingEdge(dut.clk)
-    await Timer(1, units="ns")
-    assert dut.q.value.integer == 0x12, "Register should not update when enable is off"
+    await dut.clk.rising_edge
+    await Timer(1, unit="ns")
+    assert dut.q.value.to_unsigned() == 0x12, "Register should not update when enable is off"
 
 
 @cocotb.test()
 async def test_register_all_values(dut):
     """Test register with all possible 8-bit values."""
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     await reset_dut(dut)
@@ -94,7 +94,7 @@ async def test_register_all_values(dut):
     for value in test_values:
         dut.d.value = value
         await RisingEdge(dut.clk)
-        await Timer(1, units="ns")
-        assert dut.q.value.integer == value, \
-            f"Failed for value 0x{value:02X}, got 0x{dut.q.value.integer:02X}"
+        await Timer(1, unit="ns")
+        assert dut.q.value.to_unsigned() == value, \
+            f"Failed for value 0x{value:02X}, got 0x{dut.q.value.to_unsigned():02X}"
 

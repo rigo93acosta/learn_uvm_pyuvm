@@ -130,29 +130,29 @@ async def test_reset_verification(dut):
     # Test 1: Reset during operation
     dut.enable.value = 1
     dut.d.value = 0xAA
-    await RisingEdge(dut.clk)
+    await dut.clk.rising_edge
     await Timer(1, unit="ns")
     
     cocotb.log.info("Applying reset during operation...")
     dut.rst_n.value = 0
-    await RisingEdge(dut.clk)
+    await dut.clk.rising_edge
     await Timer(1, unit="ns")
     
-    assert dut.q.value.integer == 0, "Should reset even during operation"
-    cocotb.log.info("✓ Reset during operation verified")
+    assert dut.q.value.to_unsigned() == 0, "Should reset even during operation"
+    cocotb.log.info("[OK] Reset during operation verified")
     
     # Test 2: Reset release timing
     dut.rst_n.value = 1
-    await RisingEdge(dut.clk)
+    await dut.clk.rising_edge
     await Timer(1, unit="ns")
     
     # Write new data after reset
     dut.d.value = 0x55
-    await RisingEdge(dut.clk)
+    await dut.clk.rising_edge
     await Timer(1, unit="ns")
     
-    assert dut.q.value.integer == 0x55, "Should accept new data after reset"
-    cocotb.log.info("✓ Reset release timing verified")
+    assert dut.q.value.to_unsigned() == 0x55, "Should accept new data after reset"
+    cocotb.log.info("[OK] Reset release timing verified")
 
 
 @cocotb.test()

@@ -162,11 +162,11 @@ async def test_reference_model(dut):
         reference_q = data
         
         await dut.clk.rising_edge
-        await Timer(1, units="ns")
+        await Timer(1, unit="ns")
         
         # Compare with reference
         actual_q = dut.q.value.to_unsigned()
-        print(f"Data: 0x{data:02X}, Reference: 0x{reference_q:02X}, Actual: 0x{actual_q:02X}")
+        cocotb.log.info(f"Data: 0x{data:02X}, Reference: 0x{reference_q:02X}, Actual: 0x{actual_q:02X}")
         assert actual_q == reference_q, f"Mismatch: expected 0x{reference_q:02X}, got 0x{actual_q:02X}"
 
 

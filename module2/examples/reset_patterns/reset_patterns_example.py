@@ -44,12 +44,12 @@ async def sync_reset(dut, clock_period_ns=10, reset_cycles=5):
     
     # Hold reset for specified cycles
     for i in range(reset_cycles):
-        await RisingEdge(dut.clk)
+        await dut.clk.rising_edge
         cocotb.log.info(f"  Reset cycle {i+1}/{reset_cycles}")
     
     cocotb.log.info("Deasserting sync reset...")
     dut.rst_n.value = 1
-    await RisingEdge(dut.clk)
+    await dut.clk.rising_edge
     await Timer(1, unit="ns")  # Wait for reset to propagate
     cocotb.log.info("Reset complete")
 
@@ -70,8 +70,8 @@ async def test_async_reset(dut):
     await async_reset(dut, duration_ns=50)
     
     # Verify reset state
-    assert dut.q.value.integer == 0, "Register should be reset to 0"
-    cocotb.log.info("✓ Async reset verified")
+    assert dut.q.value.to_unsigned() == 0, "Register should be reset to 0"
+    cocotb.log.info("[OK]: Async reset verified")
 
 
 @cocotb.test()
@@ -90,20 +90,20 @@ async def test_sync_reset(dut):
     dut.d.value = 0xFF
     
     # Write some data
-    await RisingEdge(dut.clk)
+    await dut.clk.rising_edge
     await Timer(1, unit="ns")
-    cocotb.log.info(f"Before reset: q = 0x{dut.q.value.integer:02X}")
+    cocotb.log.info(f"Before reset: q = 0x{dut.q.value.to_unsigned():02X}")
     
     # Apply sync reset pattern (but DUT has async reset, so it resets immediately)
     dut.rst_n.value = 0
     await Timer(1, unit="ns")  # Wait for async reset to take effect
-    assert dut.q.value.integer == 0, "Register should be reset immediately (async reset)"
+    assert dut.q.value.to_unsigned() == 0, "Register should be reset immediately (async reset)"
     
     # Hold reset for a few cycles (demonstrating sync reset pattern)
     for i in range(3):
-        await RisingEdge(dut.clk)
+        await dut.clk.rising_edge
         cocotb.log.info(f"  Reset cycle {i+1}/3")
-        assert dut.q.value.integer == 0, "Register should stay reset"
+        assert dut.q.value.to_unsigned() == 0, "Register should stay reset"
     
     # Disable enable and clear data before deasserting reset
     dut.enable.value = 0
@@ -111,11 +111,11 @@ async def test_sync_reset(dut):
     
     cocotb.log.info("Deasserting sync reset...")
     dut.rst_n.value = 1
-    await RisingEdge(dut.clk)
+    await dut.clk.rising_edge
     await Timer(1, unit="ns")
     
     # Verify reset state (should stay 0 since enable is 0)
-    assert dut.q.value.integer == 0, "Register should stay at 0 after reset"
+    assert dut.q.value.to_unsigned() == 0, "Register should stay at 0 after reset"
     cocotb.log.info("✓ Sync reset pattern verified (with async reset DUT)")
 
 

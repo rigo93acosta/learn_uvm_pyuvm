@@ -171,10 +171,10 @@ async def test_reset_initialization(dut):
     dut.d.value = 0x12
     
     # Wait for clock edge
-    await RisingEdge(dut.clk)
+    await dut.clk.rising_edge
     await Timer(1, unit="ns")
     
     # Verify initialization
-    assert dut.q.value.integer == 0x12, "Should accept data after reset"
+    assert dut.q.value.to_unsigned() == 0x12, "Should accept data after reset"
     cocotb.log.info("✓ Initialization after reset verified")
 

@@ -116,7 +116,7 @@ async def test_sync_reset(dut):
     
     # Verify reset state (should stay 0 since enable is 0)
     assert dut.q.value.to_unsigned() == 0, "Register should stay at 0 after reset"
-    cocotb.log.info("✓ Sync reset pattern verified (with async reset DUT)")
+    cocotb.log.info("[OK] Sync reset pattern verified (with async reset DUT)")
 
 
 @cocotb.test()

@@ -128,7 +128,7 @@ Se define una clase que encapsula toda la información necesaria para una operac
 
 ## Simple Register
 
-En este modulo de test se verificaron los siguientes comportamientos:
+En este modulo de test se verificaron los siguientes comportamientos para un registro simple:
 
 * Reset
 * Write
@@ -137,3 +137,7 @@ En este modulo de test se verificaron los siguientes comportamientos:
 * 
 
 ## Shift Register
+
+En este modulo de test de un registro de desplazamiento simple:
+* Reset
+* Operacion del shiftregister

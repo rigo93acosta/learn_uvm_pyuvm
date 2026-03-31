@@ -61,3 +61,67 @@ El archivo `reset_patterns_example.py` contiene ejemplos prácticos de patrones 
 
 Estos ejemplos destacan la importancia de manejar correctamente los resets en simulaciones digitales, asegurando la consistencia y estabilidad del DUT en diferentes escenarios.
 
+# Section: Common Patterns
+
+> Mantener la buena de aplicar un reset async con retardo permitiendo la estabilizacion luego del reset.
+
+Se implementa la clase `Scoreboard`, una forma sencilla de este tipo de estructura para la verificacion.
+
+## test_sequential_pattern
+
+Es un ejemplo sencillo de verificacion:
+1. Aplico reset.
+2. Activo la escritura.
+3. Envio un conjunto de valores predeterminados de tests al DUT
+4. Compruebo si a la salida tengo iguales valores.
+
+## test_random_pattern
+
+Igual que ejemplo anterior, pero en este caso el conjunto de valores es aleatorio. (Paso 3)
+
+## test_scoreboard_pattern
+
+Ejemplo sencillo igualmente pero en este caso empleando una clase que separa el dato enviado del recibido dentro de la misma estructura, desacomplando la verificacion de los datos del clock de reloj.
+
+1. Aplico reset.
+2. Activo la escritura.
+3. Envio un conjunto de valores predeterminados de tests al DUT.
+4. Recibo un conjunto de valore del DUT y los almaceno
+5. Compruebo si ambos datos son iguales.
+
+## test_reference_model
+
+En lugar de simplemente probar valores "fijos" uno por uno, lo que haces es crear una versión en software de lo que debería hacer tu hardware (el DUT).
+
+> El objetivo es asegurar que la salida del hardware (dut.q) sea exactamente igual a lo que nuestro modelo matemático o lógico en Python predice. Si el hardware se comporta distinto al modelo, el test falla.
+
+En este caso, el diseño es un registro simple que guarda el valor de entrada. reference_q es nuestra variable de Python que "imitará" al registro físico.
+
+## test_transaction_level
+
+### Verificación Basada en Transacciones (TLM)
+
+El test `test_transaction_level` implementa el concepto de **Transaction-Level Modeling (TLM)**. En lugar de manipular señales individuales (bits) de forma aislada, agrupamos los datos y el comportamiento esperado en un único objeto lógico.
+
+#### 1. Clase de Transacción (`RegisterTransaction`)
+Se define una clase que encapsula toda la información necesaria para una operación en el DUT. Sus atributos clave son:
+
+* `self.enable`: Define si la operación debe realizar un cambio en el estado del hardware.
+* `self.data`: El valor de entrada que se desea escribir.
+* `self.expected_result`: Es la predicción. Se calcula en el momento de crear el objeto usando la lógica: `data if enable else None`.
+
+#### 2. Ventajas de este enfoque
+
+* Encapsulamiento: Toda la información necesaria (estímulo + resultado esperado) está contenida en un objeto, facilitando la administración de los casos de prueba.
+* Abstracción: El testbench deja de pensar en "flancos de reloj" y empieza a pensar en "operaciones de registro", lo que hace el código más legible y mantenible.
+* Auto-verificación (Self-checking): Al incluir el `expected_result` dentro de la transacción, el bucle de ejecución puede validar automáticamente si el DUT se comportó correctamente sin necesidad de lógica externa compleja.
+
+### 3. Flujo de Ejecución
+
+1.  Generación Se crea una lista de objetos `RegisterTransaction` (el "Plan de Prueba").
+2.  Drive (Excitación): Un bucle recorre la lista y aplica los atributos del objeto a los pines del DUT (`dut.enable` y `dut.d`).
+3.  Monitor & Check: Tras el flanco de reloj, se compara el valor real del DUT (`dut.q`) contra el `expected_result` almacenado en la transacción actual.
+
+> En el código, cuando `enable` es 0, el `expected_result` se pone en `None`. Esto es una forma elegante de decirle al test: "En esta transacción no espero que el registro cambie, así que no verifiques nada (o verifica que mantuvo el valor anterior)".
+
+

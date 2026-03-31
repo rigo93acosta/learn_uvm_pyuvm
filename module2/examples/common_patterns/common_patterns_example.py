@@ -99,7 +99,7 @@ async def test_random_pattern(dut):
         dut.d.value = data
         await dut.clk.rising_edge
         await Timer(1, unit="ns")
-        print(f"Random data 0x{data:02X}, read 0x{dut.q.value.to_unsigned():02X}")
+        cocotb.log.info(f"Random data 0x{data:02X}, read 0x{dut.q.value.to_unsigned():02X}")
         assert dut.q.value.to_unsigned() == data
 
 

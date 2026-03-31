@@ -130,7 +130,7 @@ async def test_scoreboard_pattern(dut):
     
     # Check statistics
     stats = scoreboard.get_statistics()
-    print(f"Scoreboard stats: {stats}")
+    cocotb.log.info(f"Scoreboard stats: {stats}")
     assert stats['mismatches'] == 0, "No mismatches expected"
 
 

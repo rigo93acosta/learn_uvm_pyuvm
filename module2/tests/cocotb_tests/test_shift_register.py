@@ -21,28 +21,28 @@ async def reset_dut(dut, duration_ns=50, propagation_delay_ns=10):
     dut.rst_n.value = 0
     dut.shift.value = 0
     dut.data_in.value = 0
-    await Timer(duration_ns, units="ns")
+    await Timer(duration_ns, unit="ns")
     dut.rst_n.value = 1
     # Wait for reset signal to propagate through DUT logic
-    await Timer(propagation_delay_ns, units="ns")
+    await Timer(propagation_delay_ns, unit="ns")
 
 
 @cocotb.test()
 async def test_shift_register_reset(dut):
     """Test shift register reset."""
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     await reset_dut(dut)
     
-    assert dut.q.value.integer == 0, "Shift register should be reset"
+    assert dut.q.value.to_unsigned() == 0, "Shift register should be reset"
     assert int(dut.data_out.value) == 0, "Data out should be reset"
 
 
 @cocotb.test()
 async def test_shift_register_operation(dut):
     """Test shift register shift operation."""
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     await reset_dut(dut)
@@ -55,7 +55,7 @@ async def test_shift_register_operation(dut):
     for bit in test_data:
         dut.data_in.value = bit
         await RisingEdge(dut.clk)
-        await Timer(1, units="ns")
+        await Timer(1, unit="ns")
     
     # Calculate expected value from test data
     # First bit shifted in becomes MSB, last bit becomes LSB
@@ -75,7 +75,7 @@ async def test_shift_register_operation(dut):
 @cocotb.test()
 async def test_shift_register_serial_out(dut):
     """Test shift register serial output."""
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
     await reset_dut(dut)
@@ -85,13 +85,13 @@ async def test_shift_register_serial_out(dut):
     for i in range(8):
         dut.data_in.value = (i % 2)
         await RisingEdge(dut.clk)
-        await Timer(1, units="ns")
+        await Timer(1, unit="ns")
     
     # Shift out
     expected_bits = []
     for i in range(8):
         await RisingEdge(dut.clk)
-        await Timer(1, units="ns")
+        await Timer(1, unit="ns")
         expected_bits.append(int(dut.data_out.value))
     
     print(f"Serial output: {expected_bits}")

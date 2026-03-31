@@ -205,5 +205,5 @@ async def test_transaction_level(dut):
         if txn.expected_result is not None:
             assert dut.q.value.to_unsigned() == txn.expected_result, \
                 f"Transaction failed: expected 0x{txn.expected_result:02X}"
-            print(f"Transaction passed: data=0x{txn.data:02X}, result=0x{dut.q.value.to_unsigned():02X}")
+            cocotb.log.info(f"Transaction passed: data=0x{txn.data:02X}, result=0x{dut.q.value.to_unsigned():02X}")
 

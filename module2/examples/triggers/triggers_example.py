@@ -111,7 +111,7 @@ async def test_first_trigger(dut):
     cocotb.log.info("Waiting for first trigger...")
     try:
         await First(
-            RisingEdge(dut.clk),
+            dut.clk.rising_edge,
             Timer(100, unit="ns")
         )
         cocotb.log.info("Clock edge occurred first")

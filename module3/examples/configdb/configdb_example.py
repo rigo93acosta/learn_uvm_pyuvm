@@ -5,6 +5,7 @@ Demonstrates UVM configuration database usage.
 
 import cocotb
 from cocotb.triggers import Timer
+import pyuvm
 from pyuvm import *
 
 
@@ -31,10 +32,9 @@ class ConfigurableAgent(uvm_agent):
         self.logger.info(f"[{self.get_name()}] Building agent")
         
         # Get configuration from ConfigDB
-        config = None
-        success = ConfigDB().get(None, "", "agent_config", config)
-        
-        if success and config is not None:
+        config = ConfigDB().get(self, "", "agent_config", default=None)
+                
+        if config is not None:
             self.logger.info(f"  Got config: active={config.active}, "
                            f"has_coverage={config.has_coverage}")
             self.active = config.active
@@ -44,13 +44,14 @@ class ConfigurableAgent(uvm_agent):
             self.active = True
             self.has_coverage = False
         
-        # Get scalar configuration
-        address_width = 32
-        success = ConfigDB().get(None, "", "address_width", address_width)
-        if success:
-            self.logger.info(f"  Got address_width: {address_width}")
-        else:
-            self.logger.info(f"  Using default address_width: {address_width}")
+        # Para valores escalares:
+        address_width = ConfigDB().get(self, "", "address_width", default=32)
+        data_width = ConfigDB().get(self, "", "data_width", default=8)
+        self.logger.info(f"  Got address_width: {address_width}")
+        self.address_width = address_width
+
+        self.logger.info(f"  Got data_width: {data_width}")
+        self.data_width = data_width
 
 
 class ConfigurableEnv(uvm_env):
@@ -67,15 +68,15 @@ class ConfigurableEnv(uvm_env):
         agent_config.active = True
         agent_config.has_coverage = True
         agent_config.address_width = 16
-        agent_config.data_width = 8
+        agent_config.data_width = 2
         
-        ConfigDB().set(None, "", "agent_config", agent_config)
+        ConfigDB().set(self, "agent", "agent_config", agent_config)
         self.logger.info("Set agent_config in ConfigDB")
         
-        # Set scalar configuration
-        ConfigDB().set(None, "", "address_width", 16)
-        ConfigDB().set(None, "", "data_width", 8)
-        self.logger.info("Set scalar configs in ConfigDB")
+        # # Set scalar configuration
+        # ConfigDB().set(self, "agent", "address_width", 16)
+        # ConfigDB().set(self, "agent", "data_width", 2)
+        # self.logger.info("Set scalar configs in ConfigDB")
         
         # Create agent (will get config from ConfigDB)
         self.agent = ConfigurableAgent.create("agent", self)
@@ -85,13 +86,13 @@ class ConfigurableEnv(uvm_env):
         self.logger.info("Connecting ConfigurableEnv")
 
 
-# Note: @uvm_test() decorator removed to avoid import-time TypeError
+@pyuvm.test()
 class ConfigDBTest(uvm_test):
     """
     Test demonstrating ConfigDB usage.
     """
     
-    async def build_phase(self):
+    def build_phase(self):
         """Build phase."""
         self.logger.info("=" * 60)
         self.logger.info("ConfigDB Example")
@@ -116,7 +117,7 @@ class ConfigDBTest(uvm_test):
         success = ConfigDB().get(self, "env.agent", "test_config", test_value)
         if success:
             self.logger.info(f"Got config: {test_value}")
-        
+        2
         await Timer(10, unit="ns")
         self.drop_objection()
     
@@ -127,13 +128,13 @@ class ConfigDBTest(uvm_test):
         self.logger.info("=" * 60)
 
 
-# Note: @uvm_test() decorator removed to avoid import-time TypeError
+@pyuvm.test()
 class ConfigDBHierarchyTest(uvm_test):
     """
     Test demonstrating ConfigDB hierarchy.
     """
     
-    async def build_phase(self):
+    def build_phase(self):
         """Build phase - demonstrate configuration hierarchy."""
         self.logger.info("=" * 60)
         self.logger.info("ConfigDB Hierarchy Example")
@@ -172,30 +173,4 @@ class ConfigDBHierarchyTest(uvm_test):
         
         await Timer(10, unit="ns")
         self.drop_objection()
-
-
-# Cocotb test functions to run the pyuvm tests
-@cocotb.test()
-async def test_configdb(dut):
-    """Cocotb test wrapper for ConfigDBTest."""
-    # Register the test class with uvm_root so run_test can find it
-    if not hasattr(uvm_root(), 'm_uvm_test_classes'):
-        uvm_root().m_uvm_test_classes = {}
-    uvm_root().m_uvm_test_classes["ConfigDBTest"] = ConfigDBTest
-    # Use uvm_root to run the test properly (executes all phases in hierarchy)
-    await uvm_root().run_test("ConfigDBTest")
-
-@cocotb.test()
-async def test_configdb_hierarchy(dut):
-    """Cocotb test wrapper for ConfigDBHierarchyTest."""
-    # Register the test class with uvm_root so run_test can find it
-    if not hasattr(uvm_root(), 'm_uvm_test_classes'):
-        uvm_root().m_uvm_test_classes = {}
-    uvm_root().m_uvm_test_classes["ConfigDBHierarchyTest"] = ConfigDBHierarchyTest
-    # Use uvm_root to run the test properly (executes all phases in hierarchy)
-    await uvm_root().run_test("ConfigDBHierarchyTest")
-
-if __name__ == "__main__":
-    print("This is a pyuvm ConfigDB example.")
-    print("To run with cocotb, use the Makefile in the test directory.")
 

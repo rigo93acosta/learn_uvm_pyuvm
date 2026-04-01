@@ -124,3 +124,8 @@ En `reporting_example.py` se muestra el uso del sistema de reporting de UVM con 
 Los niveles válidos son los de Python logging: `logging.INFO`, `logging.DEBUG`, etc.
 
 No se configura con UVM_LOW/UVM_HIGH, sino con los niveles estándar de logging de Python.
+
+## Configuration Database
+
+En `configdb_example.py` se muestra cómo usar la Configuration Database (ConfigDB) de UVM para almacenar y recuperar configuraciones de manera jerárquica.
+

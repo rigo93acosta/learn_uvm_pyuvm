@@ -32,7 +32,7 @@ async def test_clock_class(dut):
     
     # Wait for a few clock cycles
     for i in range(5):
-        await RisingEdge(dut.clk)
+        await dut.clk.rising_edge
         cocotb.log.info(f"Clock cycle {i+1}")
     
     # Clock continues running in background
@@ -54,7 +54,7 @@ async def test_multiple_clocks(dut):
     
     # Count fast clock cycles
     for i in range(10):
-        await RisingEdge(dut.clk)
+        await dut.clk.rising_edge
         if i % 2 == 0:
             cocotb.log.info(f"Fast clock cycle {i//2 + 1}")
 
@@ -72,7 +72,7 @@ async def test_clock_gating(dut):
     # Simulate clock gating
     async def gated_clock():
         while True:
-            await RisingEdge(dut.clk)
+            await dut.clk.rising_edge
             if not clock_enable:
                 cocotb.log.info("Clock gated")
                 await Timer(50, unit="ns")  # Hold for gated period
@@ -81,11 +81,11 @@ async def test_clock_gating(dut):
     cocotb.start_soon(gated_clock())
     
     # Enable/disable clock
-    await RisingEdge(dut.clk)
+    await dut.clk.rising_edge
     clock_enable = False
     await Timer(60, unit="ns")
     clock_enable = True
-    await RisingEdge(dut.clk)
+    await dut.clk.rising_edge
 
 
 @cocotb.test()
@@ -105,7 +105,7 @@ async def test_clock_stopping(dut):
     
     # Run for a few cycles
     for i in range(5):
-        await RisingEdge(dut.clk)
+        await dut.clk.rising_edge
         print(f"Clock cycle {i+1}")
     
     # Note: In cocotb, Clock objects run until the test completes.
@@ -140,7 +140,7 @@ async def test_clock_division(dut):
         nonlocal divided_clock
         count = 0
         while True:
-            await RisingEdge(dut.clk)
+            await dut.clk.rising_edge
             count += 1
             if count >= divide_by:
                 divided_clock = 1 - divided_clock
@@ -151,5 +151,5 @@ async def test_clock_division(dut):
     
     # Run for several cycles
     for i in range(10):
-        await RisingEdge(dut.clk)
+        await dut.clk.rising_edge
 

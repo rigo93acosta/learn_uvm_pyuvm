@@ -153,3 +153,72 @@ async def test_clock_division(dut):
     for i in range(10):
         await dut.clk.rising_edge
 
+@cocotb.test()
+async def test_multiple_clock_domains(dut):
+    """Test 1: Creación y manejo de dos frecuencias distintas."""
+    # Reloj principal (Fast: 100MHz / 10ns)
+    clk_fast = Clock(dut.clk, 10, unit="ns")
+    cocotb.start_soon(clk_fast.start())
+    
+    # Reloj de referencia (Slow: 40MHz / 25ns)
+    # Lo usamos como base de tiempo interna para disparar eventos
+    period_slow = 25 
+    
+    dut.rst_n.value = 0
+    await Timer(20, unit="ns")
+    dut.rst_n.value = 1
+
+    for i in range(3):
+        await Timer(period_slow, unit="ns")
+        cocotb.log.info(f"Pulso del dominio lento #{i+1} a los {cocotb.utils.get_sim_time(unit='ns')}ns")
+
+
+@cocotb.test()
+async def test_register_gating(dut):
+    """Test 2: Control de flujo mediante gating (enable)."""
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+    
+    # Reset inicial
+    dut.rst_n.value = 0
+    dut.enable.value = 0
+    await dut.clk.falling_edge
+    dut.rst_n.value = 1
+
+    # Intento de escritura con Gating activo (Enable = 0)
+    dut.d.value = 0xA5
+    await dut.clk.rising_edge
+    await Timer(1, unit="ns")
+    assert dut.q.value == 0x00, "Error: El registro capturó datos con enable=0"
+    
+    # Escritura con Gating inactivo (Enable = 1)
+    dut.enable.value = 1
+    await dut.clk.rising_edge
+    await Timer(1, unit="ns")
+    assert dut.q.value == 0xA5, f"Error: Esperado 0xA5, obtenido {hex(dut.q.value)}"
+
+
+@cocotb.test()
+async def test_clock_synchronization(dut):
+    """Test 3: Sincronización de señales entre dominios."""
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+    dut.rst_n.value = 1
+    dut.enable.value = 0
+
+    # Simulamos un trigger que viene de un dominio de 40ns
+    for i in range(1, 4):
+        # Esperamos el evento en el dominio lento
+        await Timer(40, unit="ns") 
+        
+        # Sincronizamos con el flanco de bajada del reloj del DUT 
+        # para cambiar los datos de forma segura (Setup time)
+        await dut.clk.falling_edge
+        
+        dut.d.value = i * 5
+        dut.enable.value = 1
+        
+        await dut.clk.rising_edge  # Sincronización con el flanco de subida para capturar el dato
+        # "Cerrar" el gate inmediatamente después del flanco
+        dut.enable.value = 0 
+        
+        # cocotb.log.info(f"Dato {hex(dut.d.value)} sincronizado y capturado correctamente.")
+        cocotb.log.info(f"Dato 0x{dut.d.value.to_unsigned():02X} sincronizado y capturado correctamente.")

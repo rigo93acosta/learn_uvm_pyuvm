@@ -64,7 +64,7 @@ async def test_shift_register_operation(dut):
     for i, bit in enumerate(test_data):
         expected |= (bit << (7 - i))  # MSB first: bit 0 goes to position 7
     
-    # Alternative calculation: build binary string and convert
+    # Alternative calculation: build binary string and convertRisingEdge(
     # expected = int(''.join(str(b) for b in test_data), 2)
     
     assert dut.q.value.to_unsigned() == expected, \
@@ -84,15 +84,15 @@ async def test_shift_register_serial_out(dut):
     dut.shift.value = 1
     for i in range(8):
         dut.data_in.value = (i % 2)
-        await RisingEdge(dut.clk)
+        await dut.clk.rising_edge
         await Timer(1, unit="ns")
     
     # Shift out
     expected_bits = []
     for i in range(8):
-        await RisingEdge(dut.clk)
+        await dut.clk.rising_edge
         await Timer(1, unit="ns")
         expected_bits.append(int(dut.data_out.value))
     
-    print(f"Serial output: {expected_bits}")
+    cocotb.log.info(f"Serial output: {expected_bits}")
 

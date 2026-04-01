@@ -62,3 +62,40 @@ Esto se puede eliminar colocondo el decorador `@pyuvm.test()` directamente en la
 - **Como se arreglo:** Se elimino la creacion manual de `seq_item_port` en el driver.
 
 
+## UVM Phases
+
+En `phases_example.py` se demuestra el orden de fases con un componente (`PhasesComponent`), un env (`PhasesEnv`) y un test (`PhasesTest`).
+
+- `build_phase`: crea la jerarquia (`test -> env -> comp`) e inicializa variables.
+- `connect_phase`: conecta componentes (en este ejemplo, solo loguea).
+- `end_of_elaboration_phase`: cierra la construccion antes de correr la simulacion.
+- `run_phase` (en el test): levanta objection, espera `200ns` y luego baja objection para terminar.
+- `extract/check/report/final`: se ejecutan al final para extraer, verificar y reportar resultados.
+
+Resultado observado al correr `uv run make` en `module3/examples/phases`:
+- El test pasa (`PASS=1, FAIL=0`).
+- En el log se ven `build`, `connect`, `end_of_elaboration`, `run`, `extract`, `check`, `report` y `final`.
+- Las subfases declaradas en el componente (`pre_reset/reset/post_reset`, `pre_main/main/post_main`, `pre_shutdown/shutdown/post_shutdown`) no aparecen ejecutadas en este ejemplo.
+
+```bash
+     0.00ns INFO     ..es/phases/phases_example.py(131) [uvm_test_top]: ============================================================
+     0.00ns INFO     ..es/phases/phases_example.py(132) [uvm_test_top]: PHASES TEST - Build Phase
+     0.00ns INFO     ..es/phases/phases_example.py(133) [uvm_test_top]: ============================================================
+     0.00ns INFO     ..es/phases/phases_example.py(111) [uvm_test_top.env]: [BUILD] Building PhasesEnv
+     0.00ns INFO     ..les/phases/phases_example.py(19) [uvm_test_top.env.comp]: [BUILD] comp: Building component
+     0.00ns INFO     ..les/phases/phases_example.py(24) [uvm_test_top.env.comp]: [CONNECT] comp: Connecting component
+     0.00ns INFO     ..es/phases/phases_example.py(115) [uvm_test_top.env]: [CONNECT] Connecting PhasesEnv
+     0.00ns INFO     ..es/phases/phases_example.py(138) [uvm_test_top]: PHASES TEST - Connect Phase
+     0.00ns INFO     ..es/phases/phases_example.py(118) [uvm_test_top.env]: [END_OF_ELAB] PhasesEnv elaboration complete
+     0.00ns INFO     ..les/phases/phases_example.py(28) [uvm_test_top.env.comp]: [END_OF_ELAB] comp: Elaboration complete
+     0.00ns INFO     ..es/phases/phases_example.py(143) [uvm_test_top]: PHASES TEST - Run Phase (all run phases execute here)
+   200.00ns INFO     ..les/phases/phases_example.py(92) [uvm_test_top.env.comp]: [EXTRACT] comp: Extracting results
+   200.00ns INFO     ..es/phases/phases_example.py(149) [uvm_test_top]: PHASES TEST - Check Phase
+   200.00ns INFO     ..les/phases/phases_example.py(96) [uvm_test_top.env.comp]: [CHECK] comp: Checking results
+   200.00ns INFO     ..es/phases/phases_example.py(153) [uvm_test_top]: ============================================================
+   200.00ns INFO     ..es/phases/phases_example.py(154) [uvm_test_top]: PHASES TEST - Report Phase
+   200.00ns INFO     ..es/phases/phases_example.py(155) [uvm_test_top]: ============================================================
+   200.00ns INFO     ..es/phases/phases_example.py(100) [uvm_test_top.env.comp]: [REPORT] comp: Generating report
+   200.00ns INFO     ..es/phases/phases_example.py(104) [uvm_test_top.env.comp]: [FINAL] comp: Final cleanup
+```
+

@@ -5,6 +5,7 @@ Demonstrates UVM phase implementation and execution order.
 
 import cocotb
 from cocotb.triggers import Timer
+import pyuvm
 from pyuvm import *
 
 
@@ -117,7 +118,7 @@ class PhasesEnv(uvm_env):
         self.logger.info("[END_OF_ELAB] PhasesEnv elaboration complete")
 
 
-# Note: @uvm_test() decorator removed to avoid import-time TypeError
+@pyuvm.test()
 class PhasesTest(uvm_test):
     """
     Test demonstrating all UVM phases.
@@ -125,14 +126,14 @@ class PhasesTest(uvm_test):
     Shows phase execution order and implementation.
     """
     
-    async def build_phase(self):
+    def build_phase(self):
         """Build phase."""
         self.logger.info("=" * 60)
         self.logger.info("PHASES TEST - Build Phase")
         self.logger.info("=" * 60)
         self.env = PhasesEnv.create("env", self)
     
-    async def connect_phase(self):
+    def connect_phase(self):
         """Connect phase."""
         self.logger.info("PHASES TEST - Connect Phase")
     
@@ -153,17 +154,6 @@ class PhasesTest(uvm_test):
         self.logger.info("PHASES TEST - Report Phase")
         self.logger.info("=" * 60)
 
-
-# Cocotb test function to run the pyuvm test
-@cocotb.test()
-async def test_phases(dut):
-    """Cocotb test wrapper for pyuvm test."""
-    # Register the test class with uvm_root so run_test can find it
-    if not hasattr(uvm_root(), 'm_uvm_test_classes'):
-        uvm_root().m_uvm_test_classes = {}
-    uvm_root().m_uvm_test_classes["PhasesTest"] = PhasesTest
-    # Use uvm_root to run the test properly (executes all phases in hierarchy)
-    await uvm_root().run_test("PhasesTest")
 
 if __name__ == "__main__":
     print("This is a pyuvm phases example.")

@@ -54,7 +54,7 @@ async def test_shift_register_operation(dut):
     
     for bit in test_data:
         dut.data_in.value = bit
-        await RisingEdge(dut.clk)
+        await dut.clk.rising_edge
         await Timer(1, unit="ns")
     
     # Calculate expected value from test data

@@ -184,18 +184,18 @@ async def test_register_gating(dut):
     # Reset inicial
     dut.rst_n.value = 0
     dut.enable.value = 0
-    await FallingEdge(dut.clk)
+    await await dut.clk.falling_edge
     dut.rst_n.value = 1
 
     # Intento de escritura con Gating activo (Enable = 0)
     dut.d.value = 0xA5
-    await RisingEdge(dut.clk)
+    await await dut.clk.rising_edge
     await Timer(1, unit="ns")
     assert dut.q.value == 0x00, "Error: El registro capturó datos con enable=0" [cite: 3]
     
     # Escritura con Gating inactivo (Enable = 1)
     dut.enable.value = 1
-    await RisingEdge(dut.clk)
+    await await dut.clk.rising_edge
     await Timer(1, unit="ns")
     assert dut.q.value == 0xA5, f"Error: Esperado 0xA5, obtenido {hex(dut.q.value)}" [cite: 4]
   ```
@@ -227,11 +227,11 @@ En la verificación, el "Clock Gating" se testea validando que el diseño ignore
 # Ejemplo de flujo de gating en el testbench:
 dut.enable.value = 0
 dut.d.value = 0xAA
-await RisingEdge(dut.clk) 
+await dut.clk.rising_edge
 # Aquí el gating bloqueó el dato. q sigue siendo 0.
 
 dut.enable.value = 1 # Abrimos la compuerta
-await RisingEdge(dut.clk) 
+await dut.clk.rising_edge 
 # Aquí la compuerta estaba abierta. q ahora es 0xAA.
 ```
 
@@ -254,12 +254,12 @@ async def test_clock_synchronization(dut):
         
         # Sincronizamos con el flanco de bajada del reloj del DUT 
         # para cambiar los datos de forma segura (Setup time)
-        await FallingEdge(dut.clk)
+        await dut.clk.falling_edge
         
         dut.d.value = i * 5
         dut.enable.value = 1
         
-        await RisingEdge(dut.clk)
+        await dut.clk.rising_edge
         # "Cerrar" el gate inmediatamente después del flanco
         dut.enable.value = 0 
         

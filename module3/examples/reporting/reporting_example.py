@@ -5,10 +5,11 @@ Demonstrates UVM reporting with different severity and verbosity levels.
 
 import cocotb
 from cocotb.triggers import Timer
+import pyuvm
 from pyuvm import *
 
 
-# Note: @uvm_test() decorator removed to avoid import-time TypeError
+@pyuvm.test()
 class ReportingTest(uvm_test):
     """
     Test demonstrating UVM reporting system.
@@ -16,7 +17,7 @@ class ReportingTest(uvm_test):
     Shows different severity levels and verbosity control.
     """
     
-    async def build_phase(self):
+    def build_phase(self):
         """Build phase."""
         self.logger.info("=" * 60)
         self.logger.info("UVM Reporting Example")
@@ -86,13 +87,13 @@ class ReportingComponent(uvm_component):
         self.logger.info(f"[{self.get_name()}] Component reporting")
 
 
-# Note: @uvm_test() decorator removed to avoid import-time TypeError
+@pyuvm.test()
 class HierarchicalReportingTest(uvm_test):
     """
     Test demonstrating hierarchical reporting.
     """
     
-    async def build_phase(self):
+    def build_phase(self):
         """Build phase."""
         self.logger.info("Building HierarchicalReportingTest")
         self.comp = ReportingComponent.create("comp", self)
@@ -104,29 +105,4 @@ class HierarchicalReportingTest(uvm_test):
         await Timer(10, unit="ns")
         self.drop_objection()
 
-
-# Cocotb test functions to run the pyuvm tests
-@cocotb.test()
-async def test_reporting(dut):
-    """Cocotb test wrapper for ReportingTest."""
-    # Register the test class with uvm_root so run_test can find it
-    if not hasattr(uvm_root(), 'm_uvm_test_classes'):
-        uvm_root().m_uvm_test_classes = {}
-    uvm_root().m_uvm_test_classes["ReportingTest"] = ReportingTest
-    # Use uvm_root to run the test properly (executes all phases in hierarchy)
-    await uvm_root().run_test("ReportingTest")
-
-@cocotb.test()
-async def test_hierarchical_reporting(dut):
-    """Cocotb test wrapper for HierarchicalReportingTest."""
-    # Register the test class with uvm_root so run_test can find it
-    if not hasattr(uvm_root(), 'm_uvm_test_classes'):
-        uvm_root().m_uvm_test_classes = {}
-    uvm_root().m_uvm_test_classes["HierarchicalReportingTest"] = HierarchicalReportingTest
-    # Use uvm_root to run the test properly (executes all phases in hierarchy)
-    await uvm_root().run_test("HierarchicalReportingTest")
-
-if __name__ == "__main__":
-    print("This is a pyuvm reporting example.")
-    print("To run with cocotb, use the Makefile in the test directory.")
 

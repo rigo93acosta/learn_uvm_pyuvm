@@ -99,3 +99,28 @@ Resultado observado al correr `uv run make` en `module3/examples/phases`:
    200.00ns INFO     ..es/phases/phases_example.py(104) [uvm_test_top.env.comp]: [FINAL] comp: Final cleanup
 ```
 
+## Reporting
+
+En `reporting_example.py` se muestra el uso del sistema de reporting de UVM con diferentes niveles de severidad (INFO, WARNING, ERROR, FATAL) y cómo controlar la verbosidad.
+
+- En `ReportingTest`, se muestra el uso de `self.logger` para generar mensajes con diferentes severidades. Se pueden controlar los mensajes que se muestran ajustando el nivel de reporte (por ejemplo, `uvm_report_level`) o la verbosidad.
+- En `HierarchicalReportingTest`, se muestra cómo un componente (`ReportingComponent`) puede generar reportes que se propagan a través de la jerarquía. El componente tiene su propio logger, y al generar un mensaje, este se muestra con el nombre completo del componente (por ejemplo, `[uvm_test_top.comp] Component reporting`), lo que ayuda a identificar de dónde viene el mensaje.
+
+### Para configurar el verbosity level en pyuvm:
+
+1. **Global para todo el test:**  
+   Llama a `uvm_report_object.set_default_logging_level(logging_level)` al inicio (por ejemplo, en `build_phase` del test).  
+   Ejemplo:  
+   ```python
+   import logging
+   uvm_report_object.set_default_logging_level(logging.DEBUG)
+   ```
+2. **Solo para un componente:**  
+   Usa `self.set_logging_level(logging_level)` dentro del componente.
+
+3. **Jerárquico (componente y todos sus hijos):**  
+   Usa `self.set_logging_level_hier(logging_level)` en el componente raíz.
+
+Los niveles válidos son los de Python logging: `logging.INFO`, `logging.DEBUG`, etc.
+
+No se configura con UVM_LOW/UVM_HIGH, sino con los niveles estándar de logging de Python.

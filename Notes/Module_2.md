@@ -143,3 +143,127 @@ En este modulo de test de un registro de desplazamiento simple:
 * Operacion del shift register
 * Secuencia de datos
 * Verificacion de la salida serial
+
+# Exercises
+
+## 1. Múltiples Dominios de Reloj
+En este test, inicializamos dos relojes con frecuencias distintas. Aunque el registro solo usa uno, es vital aprender a manejar dominios asíncronos en el testbench.
+
+```Python
+@cocotb.test()
+async def test_multiple_clock_domains(dut):
+    """Test 1: Creación y manejo de dos frecuencias distintas."""
+    # Reloj principal (Fast: 100MHz / 10ns)
+    clk_fast = Clock(dut.clk, 10, unit="ns")
+    cocotb.start_soon(clk_fast.start())
+    
+    # Reloj de referencia (Slow: 40MHz / 25ns)
+    # Lo usamos como base de tiempo interna para disparar eventos
+    period_slow = 25 
+    
+    # Reset inicial
+    dut.rst_n.value = 0
+    await Timer(20, unit="ns")
+    dut.rst_n.value = 1
+
+
+    for i in range(3):
+        await Timer(period_slow, unit="ns")
+        cocotb.log.info(f"Pulso del dominio lento #{i+1} a los {cocotb.utils.get_sim_time(unit='ns')}ns")
+```
+
+## 2. Implementación de Clock Gating
+Aquí usamos la señal enable del `simple_register` para demostrar el gating lógico. El dato solo se captura cuando `enable` está en alto durante un flanco de subida de `clk`.
+
+```Python
+@cocotb.test()
+async def test_register_gating(dut):
+    """Test 2: Control de flujo mediante gating (enable)."""
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+    
+    # Reset inicial
+    dut.rst_n.value = 0
+    dut.enable.value = 0
+    await FallingEdge(dut.clk)
+    dut.rst_n.value = 1
+
+    # Intento de escritura con Gating activo (Enable = 0)
+    dut.d.value = 0xA5
+    await RisingEdge(dut.clk)
+    await Timer(1, unit="ns")
+    assert dut.q.value == 0x00, "Error: El registro capturó datos con enable=0" [cite: 3]
+    
+    # Escritura con Gating inactivo (Enable = 1)
+    dut.enable.value = 1
+    await RisingEdge(dut.clk)
+    await Timer(1, unit="ns")
+    assert dut.q.value == 0xA5, f"Error: Esperado 0xA5, obtenido {hex(dut.q.value)}" [cite: 4]
+  ```
+
+### Clock Gating
+
+El `gating` es como poner una compuerta (gate) que decide si ese "paso" llega o no al circuito. Existen dos formas de verlo:
+
+- Gating Físico (Hardware Real): Se inserta una compuerta lógica (normalmente una AND) entre la fuente del reloj y el registro. Si la señal de control es 0, el reloj del registro se queda estático en 0, ahorrando energía porque los transistores no conmutan.
+
+- Gating Lógico (Clock Enable): Es lo que se tiene en `simple_register.v`. Aquí, el `clock` siempre llega al registro, pero usamos una señal de `Enable` para decidir si el registro "hace caso" al flanco de subida o no.
+
+En el archivo `simple_register.v`, el **gating** ocurre dentro del bloque `always`:
+
+* Puertos: El módulo define clk y enable.
+* Lógica: `always @(posedge clk ...)`. El registro se despierta en cada flanco de subida.
+
+La "Compuerta": `else if (enable) begin q <= d; end`.
+* Si `enable == 1`: El dato `d` pasa a `q`.
+* Si `enable == 0`: El código simplemente no hace nada, por lo que q mantiene su valor previo. Esto es, funcionalmente, lo mismo que si el reloj no hubiera llegado.
+
+Lo importante es como verificamos esto en el testbench. 
+
+En la verificación, el "Clock Gating" se testea validando que el diseño ignore las entradas cuando la guarda está cerrada. Esto se hace mediante la manipulación de tiempos y señales:
+
+* La Ventana de Habilitación: Para que el gating funcione correctamente en un sistema real, la señal de `enable` debe estar estable antes de que llegue el flanco de subida del reloj (tiempo de setup).
+
+```Python
+# Ejemplo de flujo de gating en el testbench:
+dut.enable.value = 0
+dut.d.value = 0xAA
+await RisingEdge(dut.clk) 
+# Aquí el gating bloqueó el dato. q sigue siendo 0.
+
+dut.enable.value = 1 # Abrimos la compuerta
+await RisingEdge(dut.clk) 
+# Aquí la compuerta estaba abierta. q ahora es 0xAA.
+```
+
+## 3. Sincronización de Operaciones
+
+Este test sincroniza un evento que ocurre en un dominio de tiempo "lento" con el reloj de muestreo del DUT, asegurando que se cumplan los tiempos de setup.
+
+```Python
+@cocotb.test()
+async def test_clock_synchronization(dut):
+    """Test 3: Sincronización de señales entre dominios."""
+    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+    dut.rst_n.value = 1
+    dut.enable.value = 0
+
+    # Simulamos un trigger que viene de un dominio de 40ns
+    for i in range(1, 4):
+        # Esperamos el evento en el dominio lento
+        await Timer(40, unit="ns") 
+        
+        # Sincronizamos con el flanco de bajada del reloj del DUT 
+        # para cambiar los datos de forma segura (Setup time)
+        await FallingEdge(dut.clk)
+        
+        dut.d.value = i * 5
+        dut.enable.value = 1
+        
+        await RisingEdge(dut.clk)
+        # "Cerrar" el gate inmediatamente después del flanco
+        dut.enable.value = 0 
+        
+        cocotb.log.info(f"Dato {dut.d.value} sincronizado y capturado correctamente.")
+```
+
+

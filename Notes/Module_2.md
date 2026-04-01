@@ -2,7 +2,7 @@
 
 En el mundo de la simulación con **cocotb**, el trigger `ReadOnly` es fundamental para evitar lo que en hardware llamamos "condiciones de carrera" (race conditions) entre el testbench y el simulador.
 
-### ¿Qué hace exactamente `ReadOnly`?
+## ¿Qué hace exactamente `ReadOnly`?
 
 En una simulación digital, el tiempo no avanza de forma continua, sino por **pasos de tiempo** (time steps). Dentro de un mismo nanosegundo, ocurren muchas operaciones lógicas en diferentes "deltas".
 
@@ -12,20 +12,14 @@ Cuando usas `await ReadOnly()`:
 2.  **Entra en modo "Solo Lectura":** El simulador garantiza que no habrá más cambios en los valores de las señales en ese instante exacto.
 3.  **Garantiza consistencia:** Te permite leer el valor de una salida (como `dut.q`) con la total seguridad de que es el valor final y estable, después de que toda la lógica combinacional se haya resuelto.
 
----
-
-### El Ciclo de Vida del Simulador
+## El Ciclo de Vida del Simulador
 Para entenderlo mejor, imagina el orden en que ocurren las cosas cuando llega un flanco de reloj:
 
 1.  **Active Phase:** El reloj sube. El diseño (DUT) reacciona y las señales empiezan a cambiar.
 2.  **NBA (Non-Blocking Assignment) Phase:** Se actualizan los registros (flip-flops).
 3.  **Post-Update:** Aquí es donde entra `ReadOnly`. Es el último suspiro del paso de tiempo.
 
-
-
----
-
-### ¿Por qué es necesario en tu ejemplo?
+## ¿Por qué es necesario en tu ejemplo?
 
 Mira esta parte de tu código:
 
@@ -39,9 +33,7 @@ Si intentaras leer `dut.q` **inmediatamente** después de `await dut.clk.rising_
 
 Podrías leer el valor "viejo" de la señal antes de que el simulador termine de calcular el nuevo valor que debería tener tras el flanco de reloj. Al usar `ReadOnly`, te aseguras de que el log muestre el valor real que quedó "impreso" en el hardware.
 
----
-
-### Una regla de oro
+## Una regla de oro
 * **Para escribir (Drive):** Usa los flancos de reloj (`rising_edge`).
 * **Para leer y verificar (Monitor/Sample):** Usa `ReadOnly` para asegurarte de que no estás leyendo basura o valores transitorios.
 
@@ -152,7 +144,7 @@ En este test, inicializamos dos relojes con frecuencias distintas. Aunque el reg
 ```Python
 @cocotb.test()
 async def test_multiple_clock_domains(dut):
-    """Test 1: Creación y manejo de dos frecuencias distintas."""
+    """ Creación y manejo de dos frecuencias distintas."""
     # Reloj principal (Fast: 100MHz / 10ns)
     clk_fast = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clk_fast.start())
@@ -178,7 +170,7 @@ Aquí usamos la señal enable del `simple_register` para demostrar el gating ló
 ```Python
 @cocotb.test()
 async def test_register_gating(dut):
-    """Test 2: Control de flujo mediante gating (enable)."""
+    """ Control de flujo mediante gating (enable)."""
     cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     
     # Reset inicial
@@ -242,7 +234,7 @@ Este test sincroniza un evento que ocurre en un dominio de tiempo "lento" con el
 ```Python
 @cocotb.test()
 async def test_clock_synchronization(dut):
-    """Test 3: Sincronización de señales entre dominios."""
+    """ Sincronización de señales entre dominios."""
     cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     dut.rst_n.value = 1
     dut.enable.value = 0
@@ -266,4 +258,30 @@ async def test_clock_synchronization(dut):
         cocotb.log.info(f"Dato {dut.d.value} sincronizado y capturado correctamente.")
 ```
 
+## 4. Integridad y Propiedades del Bus
+
+Este test verifica las propiedades físicas del bus (como su ancho) y su comportamiento ante valores límite, asegurando que la conexión entre el testbench y el Verilog sea correcta.
+
+```Python
+@cocotb.test()
+async def test_bus_integrity_and_width(dut):
+    """ Verificación de anchos de señal y límites del bus."""
+    # Verificación de anchos definidos en el Verilog 
+    width_d = len(dut.d)
+    width_q = len(dut.q)
+    
+    cocotb.log.info(f"Ancho detectado - d: {width_d} bits, q: {width_q} bits")
+    assert width_d == 8, "El bus 'd' debería ser de 8 bits"
+    
+    # Prueba de desbordamiento (Overflow)
+    # Al ser 8 bits, el valor máximo es 255. Intentamos escribir 256.
+    try:
+        dut.d.value = 256
+    except (OverflowError, ValueError):
+        cocotb.log.info("[ERROR] Cocotb evita un desbordamiento en el bus 'd'")
+    await Timer(1, unit="ns")
+    
+    # Comprobar acceso por ruta jerárquica
+    cocotb.log.info(f"Ruta completa de la señal q: {dut.q._path}")
+```
 

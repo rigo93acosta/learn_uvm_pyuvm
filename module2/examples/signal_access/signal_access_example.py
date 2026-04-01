@@ -46,7 +46,7 @@ async def test_signal_access_basic(dut):
     # Enable and write data
     dut.enable.value = 1
     dut.d.value = 0xAB
-    await RisingEdge(dut.clk)
+    await dut.clk.rising_edge
     await Timer(1, unit="ns")
     
     # Read output
@@ -75,12 +75,12 @@ async def test_signal_types(dut):
     
     # Test different value assignments
     dut.d.value = 0x12  # Integer
-    await RisingEdge(dut.clk)
+    await dut.clk.rising_edge
     await Timer(1, unit="ns")
     cocotb.log.info(f"Assigned 0x12, got: 0x{dut.q.value.to_unsigned():02X}")
     
     dut.d.value = 0b10101010  # Binary literal
-    await RisingEdge(dut.clk)
+    await dut.clk.rising_edge
     await Timer(1, unit="ns")
     cocotb.log.info(f"Assigned 0b10101010, got: 0x{dut.q.value.to_unsigned():02X}")
     assert dut.q.value.to_unsigned() == 0xAA
@@ -104,7 +104,7 @@ async def test_signal_properties(dut):
     
     # Test value representations
     dut.d.value = 0x5A
-    await RisingEdge(dut.clk)
+    await dut.clk.rising_edge
     await Timer(1, unit="ns")
     
     cocotb.log.info(f"Integer: {dut.q.value.to_unsigned()}")
@@ -112,3 +112,24 @@ async def test_signal_properties(dut):
     cocotb.log.info(f"Hex: {hex(dut.q.value.to_unsigned())}")
     cocotb.log.info(f"String: {str(dut.q.value.to_unsigned())}")
 
+@cocotb.test()
+async def test_bus_integrity_and_width(dut):
+    """ Verificación de anchos de señal y límites del bus."""
+    
+    # Verificación de anchos definidos en el Verilog 
+    width_d = len(dut.d)
+    width_q = len(dut.q)
+    
+    cocotb.log.info(f"Ancho detectado - d: {width_d} bits, q: {width_q} bits")
+    assert width_d == 8, "El bus 'd' debería ser de 8 bits"
+    
+    # Prueba de desbordamiento (Overflow)
+    # Al ser 8 bits, el valor máximo es 255. Intentamos escribir 256.
+    try:
+        dut.d.value = 256
+    except (OverflowError, ValueError):
+        cocotb.log.info("[ERROR] Cocotb evita un desbordamiento en el bus 'd'")
+    await Timer(1, unit="ns")
+    
+    # Comprobar acceso por ruta jerárquica
+    cocotb.log.info(f"Ruta completa de la señal q: {dut.q._path}")

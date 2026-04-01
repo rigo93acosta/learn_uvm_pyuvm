@@ -285,3 +285,27 @@ async def test_bus_integrity_and_width(dut):
     cocotb.log.info(f"Ruta completa de la señal q: {dut.q._path}")
 ```
 
+> Falta el resto de ejercicios
+
+```markdown
+3. **Trigger Patterns**
+   - Use various triggers
+   - Combine triggers
+   - Handle timeouts
+   - **Location**: Extend `module2/examples/triggers/triggers_example.py`
+   - **Hint**: Create a timeout mechanism that cancels an operation if it takes too long
+
+4. **Test Structure**
+   - Organize tests
+   - Implement fixtures
+   - Handle errors
+   - **Location**: Create new test in `module2/tests/cocotb_tests/`
+   - **Hint**: Create a test fixture that sets up clock and reset for all tests
+
+5. **Debugging**
+   - Add logging
+   - Generate waveforms
+   - Use debugger
+   - **Location**: Add to existing tests
+   - **Hint**: Use `cocotb.log` for logging and enable VCD generation in Makefile
+```

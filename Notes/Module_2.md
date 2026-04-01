@@ -140,4 +140,6 @@ En este modulo de test se verificaron los siguientes comportamientos para un reg
 
 En este modulo de test de un registro de desplazamiento simple:
 * Reset
-* Operacion del shiftregister
+* Operacion del shift register
+* Secuencia de datos
+* Verificacion de la salida serial

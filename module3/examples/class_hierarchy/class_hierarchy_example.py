@@ -5,6 +5,7 @@ Demonstrates UVM base classes and component hierarchy.
 
 import cocotb
 from cocotb.triggers import Timer
+import pyuvm
 from pyuvm import *
 
 
@@ -36,7 +37,6 @@ class MyDriver(uvm_driver):
     def build_phase(self):
         """Build phase - component construction."""
         self.logger.info("Building MyDriver")
-        self.seq_item_port = uvm_seq_item_pull_port("seq_item_port", self)
     
     def connect_phase(self):
         """Connect phase - component connections."""
@@ -107,8 +107,7 @@ class MyEnv(uvm_env):
         self.logger.info("Connecting MyEnv")
 
 
-# Note: @uvm_test() decorator removed to avoid import-time TypeError
-# Using cocotb test wrapper instead for compatibility with cocotb test discovery
+@pyuvm.test()
 class ClassHierarchyTest(uvm_test):
     """
     Test class demonstrating UVM class hierarchy.
@@ -119,14 +118,14 @@ class ClassHierarchyTest(uvm_test):
     - Phase implementation
     """
     
-    async def build_phase(self):
+    def build_phase(self):
         """Build phase - create environment."""
         self.logger.info("=" * 60)
         self.logger.info("Building ClassHierarchyTest")
         self.logger.info("=" * 60)
         self.env = MyEnv.create("env", self)
     
-    async def connect_phase(self):
+    def connect_phase(self):
         """Connect phase."""
         self.logger.info("Connecting ClassHierarchyTest")
     
@@ -154,17 +153,6 @@ class ClassHierarchyTest(uvm_test):
         self.logger.info("ClassHierarchyTest completed")
         self.logger.info("=" * 60)
 
-
-# Cocotb test function to run the pyuvm test
-@cocotb.test()
-async def test_class_hierarchy(dut):
-    """Cocotb test wrapper for pyuvm test."""
-    # Register the test class with uvm_root so run_test can find it
-    if not hasattr(uvm_root(), 'm_uvm_test_classes'):
-        uvm_root().m_uvm_test_classes = {}
-    uvm_root().m_uvm_test_classes["ClassHierarchyTest"] = ClassHierarchyTest
-    # Use uvm_root to run the test properly (executes all phases in hierarchy)
-    await uvm_root().run_test("ClassHierarchyTest")
 
 if __name__ == "__main__":
     # Note: This is a structural example

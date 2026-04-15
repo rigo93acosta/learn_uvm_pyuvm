@@ -17,7 +17,7 @@ TEST ?= test_and_gate_uvm
 MODULE = $(TEST)
 TOPLEVEL = and_gate
 COCOTB_REDUCED_LOG_FMT = 1
-
+COMPILE_ARGS += --coverage --coverage-line --coverage-toggle
 # Include cocotb makefile
 include $(shell cocotb-config --makefiles)/Makefile.sim
 

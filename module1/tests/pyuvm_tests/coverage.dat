@@ -1,0 +1,11 @@
+# SystemC::Coverage-3
+C 'f../../dut/simple_gates/and_gate.vl12n17ttogglepagev_toggle/and_gateoa:0->1hand_gate' 0
+C 'f../../dut/simple_gates/and_gate.vl12n17ttogglepagev_toggle/and_gateoa:1->0hand_gate' 0
+C 'f../../dut/simple_gates/and_gate.vl13n17ttogglepagev_toggle/and_gateob:0->1hand_gate' 0
+C 'f../../dut/simple_gates/and_gate.vl13n17ttogglepagev_toggle/and_gateob:1->0hand_gate' 0
+C 'f../../dut/simple_gates/and_gate.vl14n17ttogglepagev_toggle/and_gateoy:0->1hand_gate' 0
+C 'f../../dut/simple_gates/and_gate.vl14n17ttogglepagev_toggle/and_gateoy:1->0hand_gate' 0
+C 'f../../dut/simple_gates/and_gate.vl17n5tlinepagev_line/and_gateoblockS17-18hand_gate' 11
+C 'f../../dut/simple_gates/and_gate.vl18n15texprpagev_expr/and_gateo(a==0) => 0hand_gate' 11
+C 'f../../dut/simple_gates/and_gate.vl18n15texprpagev_expr/and_gateo(a==1 && b==1) => 1hand_gate' 0
+C 'f../../dut/simple_gates/and_gate.vl18n15texprpagev_expr/and_gateo(b==0) => 0hand_gate' 11

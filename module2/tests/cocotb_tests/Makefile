@@ -5,7 +5,7 @@
 SIM ?= verilator
 
 # Python files
-PYTHON_FILES = test_simple_register.py test_shift_register.py
+PYTHON_FILES = test_simple_register.py test_shift_register.py test_simple_fsm.py
 
 # Test to run
 TEST ?= test_simple_register
@@ -14,14 +14,19 @@ TEST ?= test_simple_register
 MODULE = $(TEST)
 TOPLEVEL = $(shell echo $(TEST) | sed 's/test_//')
 COCOTB_REDUCED_LOG_FMT = 1
+WAVES = 1
+COMPILE_ARGS += --coverage --coverage-line --coverage-toggle
+EXTRA_ARGS += --trace --trace-structs
 
 # Verilog files - select based on test
 ifeq ($(TEST),test_simple_register)
 VERILOG_SOURCES = ../../dut/registers/simple_register.v
 else ifeq ($(TEST),test_shift_register)
 VERILOG_SOURCES = ../../dut/registers/shift_register.v
+else ifeq ($(TEST),test_simple_fsm)
+VERILOG_SOURCES = ../../dut/state_machines/simple_fsm.v
 else
-VERILOG_SOURCES = ../../dut/registers/simple_register.v ../../dut/registers/shift_register.v
+VERILOG_SOURCES = ../../dut/registers/simple_register.v ../../dut/registers/shift_register.v ../../dut/state_machines/simple_fsm.v
 endif
 VERILOG_FILES = $(VERILOG_SOURCES)
 
@@ -33,6 +38,7 @@ include $(shell cocotb-config --makefiles)/Makefile.sim
 test_all:
 	$(MAKE) TEST=test_simple_register
 	$(MAKE) TEST=test_shift_register
+	$(MAKE) TEST=test_simple_fsm
 
 .PHONY: clean
 clean::

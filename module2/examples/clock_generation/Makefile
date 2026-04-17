@@ -15,6 +15,8 @@ VERILOG_FILES = $(VERILOG_SOURCES)
 MODULE = clock_generation_example
 TOPLEVEL = simple_register
 COCOTB_REDUCED_LOG_FMT = 1
+COMPILE_ARGS += --coverage --coverage-line --coverage-toggle
+WAVES := 1
 
 # Include cocotb makefile
 include $(shell cocotb-config --makefiles)/Makefile.sim

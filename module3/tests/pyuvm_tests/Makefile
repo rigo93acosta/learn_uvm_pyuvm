@@ -18,8 +18,9 @@ TEST ?= test_simple_uvm
 MODULE = $(TEST)
 TOPLEVEL = adder
 COCOTB_REDUCED_LOG_FMT = 1
-# Reemplaza tu línea actual por esta:
+WAVES = 1
 COMPILE_ARGS += --coverage --coverage-line --coverage-toggle
+
 # Include cocotb makefile
 include $(shell cocotb-config --makefiles)/Makefile.sim
 

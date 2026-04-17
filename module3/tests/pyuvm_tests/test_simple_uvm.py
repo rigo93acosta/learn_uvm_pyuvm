@@ -7,6 +7,7 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import Timer, RisingEdge
 from pyuvm import *
+import pyuvm
 # In pyuvm, use uvm_seq_item_port instead of uvm_seq_item_pull_port
 # uvm_seq_item_port is available from pyuvm import * and works the same way
 # Create an alias for compatibility with code that expects uvm_seq_item_pull_port
@@ -79,14 +80,14 @@ class AdderDriver(uvm_driver):
     def build_phase(self):
         # pyuvm drivers already have seq_item_port by default
         # No need to create it manually
-        pass
+        self.dut = cocotb.top
     
     async def run_phase(self):
         while True:
             txn = await self.seq_item_port.get_next_item()
             # In real implementation, drive DUT signals
-            # cocotb.dut.a.value = txn.a
-            # cocotb.dut.b.value = txn.b
+            self.dut.a.value = txn.a
+            self.dut.b.value = txn.b
             self.logger.info(f"Driving: {txn}")
             await Timer(10, unit="ns")
             self.seq_item_port.item_done()
@@ -97,12 +98,13 @@ class AdderMonitor(uvm_monitor):
     
     def build_phase(self):
         self.ap = uvm_analysis_port("ap", self)
-    
+        self.dut = cocotb.top
+
     async def run_phase(self):
         while True:
             # In real implementation, sample DUT outputs
-            # sum = cocotb.dut.sum.value.integer
-            # carry = cocotb.dut.carry.value.integer
+            sum = self.dut.sum.value.to_unsigned()
+            carry = int(self.dut.carry.value)
             await Timer(10, unit="ns")
             self.logger.debug("Monitoring DUT")
 
@@ -161,6 +163,7 @@ class AdderEnv(uvm_env):
 
 
 # Note: @uvm_test() decorator removed to avoid import-time TypeError
+@pyuvm.test()
 class AdderTest(uvm_test):
     """Test class for adder."""
     
@@ -192,15 +195,15 @@ class AdderTest(uvm_test):
 
 
 # Cocotb test function to run the pyuvm test
-@cocotb.test()
-async def test_adder(dut):
-    """Cocotb test wrapper for AdderTest."""
-    # Register the test class with uvm_root so run_test can find it
-    if not hasattr(uvm_root(), 'm_uvm_test_classes'):
-        uvm_root().m_uvm_test_classes = {}
-    uvm_root().m_uvm_test_classes["AdderTest"] = AdderTest
-    # Use uvm_root to run the test properly (executes all phases in hierarchy)
-    await uvm_root().run_test("AdderTest")
+# @cocotb.test()
+# async def test_adder(dut):
+#     """Cocotb test wrapper for AdderTest."""
+#     # Register the test class with uvm_root so run_test can find it
+#     if not hasattr(uvm_root(), 'm_uvm_test_classes'):
+#         uvm_root().m_uvm_test_classes = {}
+#     uvm_root().m_uvm_test_classes["AdderTest"] = AdderTest
+#     # Use uvm_root to run the test properly (executes all phases in hierarchy)
+#     await uvm_root().run_test("AdderTest")
 
 if __name__ == "__main__":
     # Note: This is a structural example

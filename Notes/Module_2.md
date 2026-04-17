@@ -8,16 +8,17 @@ En una simulación digital, el tiempo no avanza de forma continua, sino por **pa
 
 Cuando usas `await ReadOnly()`:
 
-1.  **Detiene el testbench:** Le dice a Python que espere hasta que el simulador de Verilog/VHDL haya terminado de propagar todas las señales y cálculos lógicos del paso de tiempo actual.
-2.  **Entra en modo "Solo Lectura":** El simulador garantiza que no habrá más cambios en los valores de las señales en ese instante exacto.
-3.  **Garantiza consistencia:** Te permite leer el valor de una salida (como `dut.q`) con la total seguridad de que es el valor final y estable, después de que toda la lógica combinacional se haya resuelto.
+1. **Detiene el testbench:** Le dice a Python que espere hasta que el simulador de Verilog/VHDL haya terminado de propagar todas las señales y cálculos lógicos del paso de tiempo actual.
+2. **Entra en modo "Solo Lectura":** El simulador garantiza que no habrá más cambios en los valores de las señales en ese instante exacto.
+3. **Garantiza consistencia:** Te permite leer el valor de una salida (como `dut.q`) con la total seguridad de que es el valor final y estable, después de que toda la lógica combinacional se haya resuelto.
 
 ## El Ciclo de Vida del Simulador
+
 Para entenderlo mejor, imagina el orden en que ocurren las cosas cuando llega un flanco de reloj:
 
-1.  **Active Phase:** El reloj sube. El diseño (DUT) reacciona y las señales empiezan a cambiar.
-2.  **NBA (Non-Blocking Assignment) Phase:** Se actualizan los registros (flip-flops).
-3.  **Post-Update:** Aquí es donde entra `ReadOnly`. Es el último suspiro del paso de tiempo.
+1. **Active Phase:** El reloj sube. El diseño (DUT) reacciona y las señales empiezan a cambiar.
+2. **NBA (Non-Blocking Assignment) Phase:** Se actualizan los registros (flip-flops).
+3. **Post-Update:** Aquí es donde entra `ReadOnly`. Es el último suspiro del paso de tiempo.
 
 ## ¿Por qué es necesario en tu ejemplo?
 
@@ -29,13 +30,14 @@ await ReadOnly()           # 2. Esperamos a que la lógica se estabilice
 cocotb.log.info(...)       # 3. Leemos el resultado real
 ```
 
-Si intentaras leer `dut.q` **inmediatamente** después de `await dut.clk.rising_edge` sin el `ReadOnly`, podrías encontrarte con un problema: **Python podría ser más rápido que el simulador**. 
+Si intentaras leer `dut.q` **inmediatamente** después de `await dut.clk.rising_edge` sin el `ReadOnly`, podrías encontrarte con un problema: **Python podría ser más rápido que el simulador**.
 
 Podrías leer el valor "viejo" de la señal antes de que el simulador termine de calcular el nuevo valor que debería tener tras el flanco de reloj. Al usar `ReadOnly`, te aseguras de que el log muestre el valor real que quedó "impreso" en el hardware.
 
 ## Una regla de oro
-* **Para escribir (Drive):** Usa los flancos de reloj (`rising_edge`).
-* **Para leer y verificar (Monitor/Sample):** Usa `ReadOnly` para asegurarte de que no estás leyendo basura o valores transitorios.
+
+- **Para escribir (Drive):** Usa los flancos de reloj (`rising_edge`).
+- **Para leer y verificar (Monitor/Sample):** Usa `ReadOnly` para asegurarte de que no estás leyendo basura o valores transitorios.
 
 > **Dato importante:** Al igual que con los otros triggers, en versiones muy recientes de cocotb, se prefiere a veces usar `await NextTimeStep()` o simplemente confiar en el modelo de programación asíncrona, pero `ReadOnly` sigue siendo el estándar de oro para muestreo seguro de señales.
 
@@ -62,6 +64,7 @@ Se implementa la clase `Scoreboard`, una forma sencilla de este tipo de estructu
 ## test_sequential_pattern
 
 Es un ejemplo sencillo de verificacion:
+
 1. Aplico reset.
 2. Activo la escritura.
 3. Envio un conjunto de valores predeterminados de tests al DUT
@@ -96,49 +99,52 @@ En este caso, el diseño es un registro simple que guarda el valor de entrada. r
 El test `test_transaction_level` implementa el concepto de **Transaction-Level Modeling (TLM)**. En lugar de manipular señales individuales (bits) de forma aislada, agrupamos los datos y el comportamiento esperado en un único objeto lógico.
 
 #### 1. Clase de Transacción (`RegisterTransaction`)
+
 Se define una clase que encapsula toda la información necesaria para una operación en el DUT. Sus atributos clave son:
 
-* `self.enable`: Define si la operación debe realizar un cambio en el estado del hardware.
-* `self.data`: El valor de entrada que se desea escribir.
-* `self.expected_result`: Es la predicción. Se calcula en el momento de crear el objeto usando la lógica: `data if enable else None`.
+- `self.enable`: Define si la operación debe realizar un cambio en el estado del hardware.
+- `self.data`: El valor de entrada que se desea escribir.
+- `self.expected_result`: Es la predicción. Se calcula en el momento de crear el objeto usando la lógica: `data if enable else None`.
 
 #### 2. Ventajas de este enfoque
 
-* Encapsulamiento: Toda la información necesaria (estímulo + resultado esperado) está contenida en un objeto, facilitando la administración de los casos de prueba.
-* Abstracción: El testbench deja de pensar en "flancos de reloj" y empieza a pensar en "operaciones de registro", lo que hace el código más legible y mantenible.
-* Auto-verificación (Self-checking): Al incluir el `expected_result` dentro de la transacción, el bucle de ejecución puede validar automáticamente si el DUT se comportó correctamente sin necesidad de lógica externa compleja.
+- Encapsulamiento: Toda la información necesaria (estímulo + resultado esperado) está contenida en un objeto, facilitando la administración de los casos de prueba.
+- Abstracción: El testbench deja de pensar en "flancos de reloj" y empieza a pensar en "operaciones de registro", lo que hace el código más legible y mantenible.
+- Auto-verificación (Self-checking): Al incluir el `expected_result` dentro de la transacción, el bucle de ejecución puede validar automáticamente si el DUT se comportó correctamente sin necesidad de lógica externa compleja.
 
 ### 3. Flujo de Ejecución
 
-1.  Generación Se crea una lista de objetos `RegisterTransaction` (el "Plan de Prueba").
-2.  Drive (Excitación): Un bucle recorre la lista y aplica los atributos del objeto a los pines del DUT (`dut.enable` y `dut.d`).
-3.  Monitor & Check: Tras el flanco de reloj, se compara el valor real del DUT (`dut.q`) contra el `expected_result` almacenado en la transacción actual.
+1. Generación Se crea una lista de objetos `RegisterTransaction` (el "Plan de Prueba").
+2. Drive (Excitación): Un bucle recorre la lista y aplica los atributos del objeto a los pines del DUT (`dut.enable` y `dut.d`).
+3. Monitor & Check: Tras el flanco de reloj, se compara el valor real del DUT (`dut.q`) contra el `expected_result` almacenado en la transacción actual.
 
 > En el código, cuando `enable` es 0, el `expected_result` se pone en `None`. Esto es una forma elegante de decirle al test: "En esta transacción no espero que el registro cambie, así que no verifiques nada (o verifica que mantuvo el valor anterior)".
 
-# Test 
+# Test
 
 ## Simple Register
 
 En este modulo de test se verificaron los siguientes comportamientos para un registro simple:
 
-* Reset
-* Write
-* Enable
-* Secuencia de datos
-* 
+- Reset
+- Write
+- Enable
+- Secuencia de datos
+-
 
 ## Shift Register
 
 En este modulo de test de un registro de desplazamiento simple:
-* Reset
-* Operacion del shift register
-* Secuencia de datos
-* Verificacion de la salida serial
+
+- Reset
+- Operacion del shift register
+- Secuencia de datos
+- Verificacion de la salida serial
 
 # Exercises
 
 ## 1. Múltiples Dominios de Reloj
+
 En este test, inicializamos dos relojes con frecuencias distintas. Aunque el registro solo usa uno, es vital aprender a manejar dominios asíncronos en el testbench.
 
 ```Python
@@ -148,11 +154,11 @@ async def test_multiple_clock_domains(dut):
     # Reloj principal (Fast: 100MHz / 10ns)
     clk_fast = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clk_fast.start())
-    
+
     # Reloj de referencia (Slow: 40MHz / 25ns)
     # Lo usamos como base de tiempo interna para disparar eventos
-    period_slow = 25 
-    
+    period_slow = 25
+
     # Reset inicial
     dut.rst_n.value = 0
     await Timer(20, unit="ns")
@@ -165,6 +171,7 @@ async def test_multiple_clock_domains(dut):
 ```
 
 ## 2. Implementación de Clock Gating
+
 Aquí usamos la señal enable del `simple_register` para demostrar el gating lógico. El dato solo se captura cuando `enable` está en alto durante un flanco de subida de `clk`.
 
 ```Python
@@ -172,7 +179,7 @@ Aquí usamos la señal enable del `simple_register` para demostrar el gating ló
 async def test_register_gating(dut):
     """ Control de flujo mediante gating (enable)."""
     cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
-    
+
     # Reset inicial
     dut.rst_n.value = 0
     dut.enable.value = 0
@@ -184,13 +191,13 @@ async def test_register_gating(dut):
     await await dut.clk.rising_edge
     await Timer(1, unit="ns")
     assert dut.q.value == 0x00, "Error: El registro capturó datos con enable=0" [cite: 3]
-    
+
     # Escritura con Gating inactivo (Enable = 1)
     dut.enable.value = 1
     await await dut.clk.rising_edge
     await Timer(1, unit="ns")
     assert dut.q.value == 0xA5, f"Error: Esperado 0xA5, obtenido {hex(dut.q.value)}" [cite: 4]
-  ```
+```
 
 ### Clock Gating
 
@@ -202,18 +209,19 @@ El `gating` es como poner una compuerta (gate) que decide si ese "paso" llega o 
 
 En el archivo `simple_register.v`, el **gating** ocurre dentro del bloque `always`:
 
-* Puertos: El módulo define clk y enable.
-* Lógica: `always @(posedge clk ...)`. El registro se despierta en cada flanco de subida.
+- Puertos: El módulo define clk y enable.
+- Lógica: `always @(posedge clk ...)`. El registro se despierta en cada flanco de subida.
 
 La "Compuerta": `else if (enable) begin q <= d; end`.
-* Si `enable == 1`: El dato `d` pasa a `q`.
-* Si `enable == 0`: El código simplemente no hace nada, por lo que q mantiene su valor previo. Esto es, funcionalmente, lo mismo que si el reloj no hubiera llegado.
 
-Lo importante es como verificamos esto en el testbench. 
+- Si `enable == 1`: El dato `d` pasa a `q`.
+- Si `enable == 0`: El código simplemente no hace nada, por lo que q mantiene su valor previo. Esto es, funcionalmente, lo mismo que si el reloj no hubiera llegado.
+
+Lo importante es como verificamos esto en el testbench.
 
 En la verificación, el "Clock Gating" se testea validando que el diseño ignore las entradas cuando la guarda está cerrada. Esto se hace mediante la manipulación de tiempos y señales:
 
-* La Ventana de Habilitación: Para que el gating funcione correctamente en un sistema real, la señal de `enable` debe estar estable antes de que llegue el flanco de subida del reloj (tiempo de setup).
+- La Ventana de Habilitación: Para que el gating funcione correctamente en un sistema real, la señal de `enable` debe estar estable antes de que llegue el flanco de subida del reloj (tiempo de setup).
 
 ```Python
 # Ejemplo de flujo de gating en el testbench:
@@ -223,7 +231,7 @@ await dut.clk.rising_edge
 # Aquí el gating bloqueó el dato. q sigue siendo 0.
 
 dut.enable.value = 1 # Abrimos la compuerta
-await dut.clk.rising_edge 
+await dut.clk.rising_edge
 # Aquí la compuerta estaba abierta. q ahora es 0xAA.
 ```
 
@@ -242,19 +250,19 @@ async def test_clock_synchronization(dut):
     # Simulamos un trigger que viene de un dominio de 40ns
     for i in range(1, 4):
         # Esperamos el evento en el dominio lento
-        await Timer(40, unit="ns") 
-        
-        # Sincronizamos con el flanco de bajada del reloj del DUT 
+        await Timer(40, unit="ns")
+
+        # Sincronizamos con el flanco de bajada del reloj del DUT
         # para cambiar los datos de forma segura (Setup time)
         await dut.clk.falling_edge
-        
+
         dut.d.value = i * 5
         dut.enable.value = 1
-        
+
         await dut.clk.rising_edge
         # "Cerrar" el gate inmediatamente después del flanco
-        dut.enable.value = 0 
-        
+        dut.enable.value = 0
+
         cocotb.log.info(f"Dato {dut.d.value} sincronizado y capturado correctamente.")
 ```
 
@@ -266,13 +274,13 @@ Este test verifica las propiedades físicas del bus (como su ancho) y su comport
 @cocotb.test()
 async def test_bus_integrity_and_width(dut):
     """ Verificación de anchos de señal y límites del bus."""
-    # Verificación de anchos definidos en el Verilog 
+    # Verificación de anchos definidos en el Verilog
     width_d = len(dut.d)
     width_q = len(dut.q)
-    
+
     cocotb.log.info(f"Ancho detectado - d: {width_d} bits, q: {width_q} bits")
     assert width_d == 8, "El bus 'd' debería ser de 8 bits"
-    
+
     # Prueba de desbordamiento (Overflow)
     # Al ser 8 bits, el valor máximo es 255. Intentamos escribir 256.
     try:
@@ -280,7 +288,7 @@ async def test_bus_integrity_and_width(dut):
     except (OverflowError, ValueError):
         cocotb.log.info("[ERROR] Cocotb evita un desbordamiento en el bus 'd'")
     await Timer(1, unit="ns")
-    
+
     # Comprobar acceso por ruta jerárquica
     cocotb.log.info(f"Ruta completa de la señal q: {dut.q._path}")
 ```

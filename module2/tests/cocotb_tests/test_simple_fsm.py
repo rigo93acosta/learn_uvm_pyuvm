@@ -90,11 +90,14 @@ async def test_fsm_sequence_logic(dut):
     await dut.clk.rising_edge
     await Timer(1, "ns")
     assert dut.state.value == FsmState.DONE
-    assert dut.done.value == 1, "Error: 'done' must be 1 in the DONE state"
+    
 
     await dut.clk.rising_edge
     await Timer(1, "ns")
     assert dut.state.value == FsmState.IDLE
+    assert dut.done.value == 1, "Error: 'done' must be 1 in the DONE state"
+    
+    await Timer(10, "ns")
 
 @cocotb.test()
 async def test_fsm_reset_recovery(dut):

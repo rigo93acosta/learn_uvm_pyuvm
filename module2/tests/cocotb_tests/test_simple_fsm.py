@@ -10,7 +10,7 @@ class FsmState(IntEnum):
     WORK = 2
     DONE = 3
 
-# Reemplazar cocotb.logging con logging estándar de Python
+# Replace cocotb.logging with standard Python logging
 class FSMMonitor:
     def __init__(self, dut):
         self.dut = dut
@@ -18,17 +18,17 @@ class FSMMonitor:
         logging.basicConfig(level=logging.INFO)
 
     async def start_monitoring(self):
-        """Observa los cambios de estado y las salidas en cada ciclo."""
+        """Observes state changes and outputs on each cycle."""
         while True:
             await self.dut.clk.rising_edge
-            # Esperamos un pequeño tiempo para que las señales se estabilicen
+            # Wait a small time for signals to stabilize
             await Timer(1, unit="ns") 
             
             current_state = FsmState(self.dut.state.value)
             is_done = self.dut.done.value
             
-            # El monitor solo informa, no hace asserts
-            self.log.info(f"[MON] Estado: {current_state.name} | Done: {is_done}")
+            # The monitor only reports, it does not assert
+            self.log.info(f"[MON] State: {current_state.name} | Done: {is_done}")
 
 async def reset_dut(dut, duration: int = 10):
     """Reset the DUT."""
@@ -53,8 +53,8 @@ async def test_fsm_reset(dut):
 @cocotb.test()
 async def test_fsm_idle_and_outputs(dut):
     """
-    Verifica que la FSM permanezca en IDLE 
-    y 'done' sea 0 sin estímulo.
+    Verify that the FSM remains in IDLE 
+    and 'done' is 0 without stimulus.
     """
     clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
@@ -63,18 +63,18 @@ async def test_fsm_idle_and_outputs(dut):
     for _ in range(5):
         await dut.clk.rising_edge
         assert dut.state.value == FsmState.IDLE
-        assert dut.done.value == 0, "Error: 'done' debe ser 0 en IDLE"
+        assert dut.done.value == 0, "Error: 'done' must be 0 in IDLE"
 
 @cocotb.test()
 async def test_fsm_sequence_logic(dut):
     """
-    Verifica la secuencia IDLE -> START -> WORK -> DONE -> IDLE.
+    Verify the sequence IDLE -> START -> WORK -> DONE -> IDLE.
     """
     clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     await reset_dut(dut)
 
-    # Disparar FSM
+    # Trigger FSM
     dut.start.value = 1
     await dut.clk.rising_edge
     await Timer(1, "ns")
@@ -90,7 +90,7 @@ async def test_fsm_sequence_logic(dut):
     await dut.clk.rising_edge
     await Timer(1, "ns")
     assert dut.state.value == FsmState.DONE
-    assert dut.done.value == 1, "Error: 'done' debe ser 1 en el estado DONE"
+    assert dut.done.value == 1, "Error: 'done' must be 1 in the DONE state"
 
     await dut.clk.rising_edge
     await Timer(1, "ns")
@@ -99,30 +99,30 @@ async def test_fsm_sequence_logic(dut):
 @cocotb.test()
 async def test_fsm_reset_recovery(dut):
     """
-    Verifica que un reset en medio de la operación regrese la FSM a IDLE.
+    Verify that a reset during operation returns the FSM to IDLE.
     """
 
     clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     await reset_dut(dut)
     state = FsmState
-    # Llegar hasta el estado WORK
+    # Reach the WORK state
     dut.start.value = 1
-    await dut.clk.rising_edge # A START
-    await dut.clk.rising_edge # A WORK
+    await dut.clk.rising_edge # To START
+    await dut.clk.rising_edge # To WORK
     dut.start.value = 0
     
-    # Aplicar reset inesperado
+    # Apply unexpected reset
     await reset_dut(dut, duration=5)
-    assert dut.state.value == state.IDLE, "La FSM no regresó a IDLE tras reset"
-    assert dut.done.value == 0, "La señal 'done' quedó pegada tras reset"
+    assert dut.state.value == state.IDLE, "The FSM did not return to IDLE after reset"
+    assert dut.done.value == 0, "The 'done' signal remained stuck after reset"
 
 
 @cocotb.test()
 async def test_fsm_monitor(dut):
     """
-    Test con monitor para observar la secuencia de estados y salidas.
-    Este test no hace asserts, solo muestra la información del monitor.
+    Test with monitor to observe the sequence of states and outputs.
+    This test does not assert, it only shows the monitor information.
     """
     clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
@@ -132,7 +132,7 @@ async def test_fsm_monitor(dut):
     
     await reset_dut(dut)
     
-    # Disparar FSM varias veces para ver la secuencia en el monitor
+    # Trigger FSM multiple times to see the sequence in the monitor
     for _ in range(3):
         dut.start.value = 1
         await dut.clk.rising_edge

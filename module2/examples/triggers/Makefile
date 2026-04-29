@@ -10,11 +10,13 @@ PYTHON_FILES = triggers_example.py
 # Verilog files
 VERILOG_SOURCES = ../../dut/registers/simple_register.v
 VERILOG_FILES = $(VERILOG_SOURCES)
+EXTRA_ARGS += --trace --trace-fst --trace-structs
 
 # Cocotb variables
 MODULE = triggers_example
 TOPLEVEL = simple_register
 COCOTB_REDUCED_LOG_FMT = 1
+WAVES := 1
 
 # Include cocotb makefile
 include $(shell cocotb-config --makefiles)/Makefile.sim

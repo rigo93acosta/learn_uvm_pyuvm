@@ -2,3 +2,7 @@
 /module1/tests/pyuvm_tests/sim_build/
 /module2/examples/signal_access/sim_build/*
 /module2/examples/clock_generation/sim_build/*
+sim_build/
+*.xml
+*.fst
+__pycache__/

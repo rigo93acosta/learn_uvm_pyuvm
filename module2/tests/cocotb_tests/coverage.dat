@@ -1,0 +1,45 @@
+# SystemC::Coverage-3
+C 'f../../dut/registers/simple_register.vl15n23ttogglepagev_toggle/simple_registeroclk:0->1hsimple_register' 31
+C 'f../../dut/registers/simple_register.vl15n23ttogglepagev_toggle/simple_registeroclk:1->0hsimple_register' 30
+C 'f../../dut/registers/simple_register.vl16n23ttogglepagev_toggle/simple_registerorst_n:0->1hsimple_register' 4
+C 'f../../dut/registers/simple_register.vl16n23ttogglepagev_toggle/simple_registerorst_n:1->0hsimple_register' 3
+C 'f../../dut/registers/simple_register.vl17n23ttogglepagev_toggle/simple_registeroenable:0->1hsimple_register' 3
+C 'f../../dut/registers/simple_register.vl17n23ttogglepagev_toggle/simple_registeroenable:1->0hsimple_register' 2
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[0]:0->1hsimple_register' 3
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[0]:1->0hsimple_register' 2
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[1]:0->1hsimple_register' 4
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[1]:1->0hsimple_register' 3
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[2]:0->1hsimple_register' 3
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[2]:1->0hsimple_register' 2
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[3]:0->1hsimple_register' 3
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[3]:1->0hsimple_register' 2
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[4]:0->1hsimple_register' 3
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[4]:1->0hsimple_register' 2
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[5]:0->1hsimple_register' 4
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[5]:1->0hsimple_register' 3
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[6]:0->1hsimple_register' 2
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[6]:1->0hsimple_register' 1
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[7]:0->1hsimple_register' 2
+C 'f../../dut/registers/simple_register.vl18n23ttogglepagev_toggle/simple_registerod[7]:1->0hsimple_register' 1
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[0]:0->1hsimple_register' 3
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[0]:1->0hsimple_register' 2
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[1]:0->1hsimple_register' 4
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[1]:1->0hsimple_register' 3
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[2]:0->1hsimple_register' 2
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[2]:1->0hsimple_register' 1
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[3]:0->1hsimple_register' 3
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[3]:1->0hsimple_register' 2
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[4]:0->1hsimple_register' 3
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[4]:1->0hsimple_register' 2
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[5]:0->1hsimple_register' 3
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[5]:1->0hsimple_register' 2
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[6]:0->1hsimple_register' 2
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[6]:1->0hsimple_register' 1
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[7]:0->1hsimple_register' 2
+C 'f../../dut/registers/simple_register.vl19n23ttogglepagev_toggle/simple_registeroq[7]:1->0hsimple_register' 1
+C 'f../../dut/registers/simple_register.vl22n5tlinepagev_line/simple_registeroblockS22hsimple_register' 33
+C 'f../../dut/registers/simple_register.vl23n13texprpagev_expr/simple_registero(rst_n==0) => 1hsimple_register' 20
+C 'f../../dut/registers/simple_register.vl23n13texprpagev_expr/simple_registero(rst_n==1) => 0hsimple_register' 13
+C 'f../../dut/registers/simple_register.vl23n9tlinepagev_line/simple_registeroelsifS23-24hsimple_register' 20
+C 'f../../dut/registers/simple_register.vl25n18tbranchpagev_branch/simple_registeroifS25-26hsimple_register' 8
+C 'f../../dut/registers/simple_register.vl25n19tbranchpagev_branch/simple_registeroelsehsimple_register' 5

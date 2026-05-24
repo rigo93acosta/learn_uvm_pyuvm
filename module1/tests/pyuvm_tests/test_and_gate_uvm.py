@@ -10,6 +10,9 @@ Demonstrates:
 
 from pyuvm import *
 import pyuvm
+from typing import List, Any
+import cocotb
+from cocotb.triggers import Timer
 
 class AndGateTransaction(uvm_sequence_item):
     """Transaction for AND gate test."""
@@ -22,6 +25,14 @@ class AndGateTransaction(uvm_sequence_item):
     
     def __str__(self):
         return f"a={self.a}, b={self.b}, expected_y={self.expected_y}"
+
+    def set_value_txn(self, values: List[Any]) -> None:
+        """Factory method to create transaction from list of values."""
+        if len(values) != 3:
+            raise ValueError("Expected 3 values: a, b, expected_y")
+        self.a = values[0]
+        self.b = values[1]
+        self.expected_y = values[2]
 
 
 class AndGateSequence(uvm_sequence):
@@ -36,11 +47,9 @@ class AndGateSequence(uvm_sequence):
             (1, 1, 1),
         ]
         
-        for a, b, expected_y in test_vectors:
+        for test_values in test_vectors:
             txn = AndGateTransaction()
-            txn.a = a
-            txn.b = b
-            txn.expected_y = expected_y
+            txn.set_value_txn(test_values)
             await self.start_item(txn)
             await self.finish_item(txn)
 
@@ -60,8 +69,8 @@ class AndGateDriver(uvm_driver):
         """Build phase: driver setup."""
         # pyuvm drivers already have seq_item_port by default
         # In real implementation with cocotb:
-        # self.dut = cocotb.top  # Access DUT from cocotb
-        pass
+        self.dut = cocotb.top  # Access DUT from cocotb
+        # pass
     
     async def run_phase(self):
         """
@@ -79,9 +88,9 @@ class AndGateDriver(uvm_driver):
             
             # Drive DUT signals from transaction
             # In real cocotb implementation:
-            # self.dut.a.value = txn.a
-            # self.dut.b.value = txn.b
-            # await Timer(10, unit="ns")  # Wait for combinational logic
+            self.dut.a.value = txn.a
+            self.dut.b.value = txn.b
+            await Timer(10, unit="ns")  # Wait for combinational logic
             
             self.logger.info(f"Driving DUT: a={txn.a}, b={txn.b} (expected y={txn.expected_y})")
             
@@ -101,7 +110,7 @@ class AndGateMonitor(uvm_monitor):
         """Build phase: create analysis port for sending transactions."""
         self.ap = uvm_analysis_port("ap", self)
         # In real implementation with cocotb:
-        # self.dut = cocotb.top  # Access DUT from cocotb
+        self.dut = cocotb.top  # Access DUT from cocotb
     
     async def run_phase(self):
         """
@@ -117,14 +126,14 @@ class AndGateMonitor(uvm_monitor):
         while True:
             # Sample DUT output
             # In real cocotb implementation:
-            # observed_y = self.dut.y.value.integer
+            observed_y = int(self.dut.y.value)
             # 
             # Create transaction with observed value
-            # observed_txn = AndGateTransaction()
-            # observed_txn.y = observed_y
+            observed_txn = AndGateTransaction()
+            observed_txn.y = observed_y
             # 
             # Send to scoreboard via analysis port
-            # self.ap.write(observed_txn)
+            self.ap.write(observed_txn)
             
             await Timer(10, unit="ns")  # Wait for next sampling point
             self.logger.info("Monitoring DUT: sampling output y")
@@ -152,8 +161,6 @@ class AndGateEnv(uvm_env):
         pass
 
 
-# Note: @uvm_test() decorator removed to avoid import-time TypeError
-# Using cocotb test wrapper instead for compatibility with cocotb test discovery
 @pyuvm.test()
 class AndGateTest(uvm_test):
     """Test class for AND gate."""
@@ -172,24 +179,7 @@ class AndGateTest(uvm_test):
         self.logger.info("Checking test results")
 
 
-# Cocotb test function to run the pyuvm test
-import cocotb
-from cocotb.triggers import Timer
-
-# @cocotb.test()
-# async def test_and_gate_uvm(dut):
-#     """Cocotb test wrapper for pyuvm test."""
-#     # Register the test class with uvm_root so run_test can find it
-#     if not hasattr(uvm_root(), 'm_uvm_test_classes'):
-#         uvm_root().m_uvm_test_classes = {}
-#     uvm_root().m_uvm_test_classes["AndGateTest"] = AndGateTest
-#     # Use uvm_root to run the test properly (executes all phases in hierarchy)
-#     await uvm_root().run_test("AndGateTest")
-
-
 if __name__ == "__main__":
-    # Note: This is a simplified example
-    # In practice, you would use cocotb to run this with a simulator
     print("This is a pyuvm test structure example.")
     print("To run with cocotb, use the Makefile in the test directory.")    
 

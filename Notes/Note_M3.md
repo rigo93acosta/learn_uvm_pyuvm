@@ -10,6 +10,26 @@ En esto módulo se profundiza en los siguientes temas:
 - Factory Pattern
 - Objection Mechanism
 
+## Jerarquia UVM
+
+Clases base:
+- uvm_object: Base para todos los objetos UVM
+- uvm_component: Base para todos los componentes UVM
+
+Componentes:
+- uvm_test - Clase de test de nivel superior
+- uvm_env - Contenedor de entornos
+- uvm_agent - Agente (driver, monitor, sequencer)
+- uvm_driver - Genera transacciones hacia el DUT
+- uvm_monitor - Monitorea señales del DUT
+- uvm_sequencer - Maneja secuencias
+- uvm_scoreboard - Verifica resultados
+
+Objetos:
+- uvm_sequence_item - Objetos de transacción
+- uvm_sequence - Secuencia de transacciones
+- uvm_config_object - Objetos de configuración
+
 > Debe quedar claro: `uvm_agent` - Agent (driver, monitor, sequencer)
 
 Relaciones entre clases:
@@ -17,7 +37,7 @@ Relaciones entre clases:
   - Composition patterns: `uvm_env` contiene agentes, `uvm_test` contiene ambientes, etc.
   - Factory pattern: `uvm_factory` para crear objetos de manera flexible y configurable.
 
-A partir de aca voy a eliminar este wrapper que ya no es necasario:
+A partir de aca voy a eliminar este wrapper que ya no es necesario:
 ```python
 # Cocotb test function to run the pyuvm test
 @cocotb.test()
@@ -31,7 +51,7 @@ async def test_class_hierarchy(dut):
     await uvm_root().run_test("ClassHierarchyTest")
 ```
 
-Esto se puede eliminar colocondo el decorador `@pyuvm.test()` directamente en la clase de test, lo cual es más limpio y directo.
+Esto se puede eliminar colocando el decorador `@pyuvm.test()` directamente en la clase de test, lo cual es más limpio y directo.
 
 ## Class Hierarchy example code
 

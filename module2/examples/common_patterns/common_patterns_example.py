@@ -66,7 +66,7 @@ async def test_sequential_pattern(dut):
     clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
-    await async_reset(dut)
+    await async_reset(dut, duration_ns=1, propagation_delay_ns=1)
     dut.enable.value = 1
     
     # Sequential pattern
@@ -178,7 +178,7 @@ async def test_transaction_level(dut):
     clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     
-    await async_reset(dut)
+    await async_reset(dut, 1, 1)
     
     class RegisterTransaction:
         """Transaction class for register operations."""

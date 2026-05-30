@@ -1,14 +1,17 @@
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import Timer
-from enum import IntEnum
+from enum import IntEnum, unique, auto
 import logging
 
+
+@unique
 class FsmState(IntEnum):
     IDLE = 0
     START = 1
     WORK = 2
     DONE = 3
+
 
 # Replace cocotb.logging with standard Python logging
 class FSMMonitor:
@@ -22,13 +25,14 @@ class FSMMonitor:
         while True:
             await self.dut.clk.rising_edge
             # Wait a small time for signals to stabilize
-            await Timer(1, unit="ns") 
-            
+            await Timer(1, unit="ns")
+
             current_state = FsmState(self.dut.state.value)
             is_done = self.dut.done.value
-            
+
             # The monitor only reports, it does not assert
-            self.log.info(f"[MON] State: {current_state.name} | Done: {is_done}")
+            self.log.info(f"[MON] State: {current_state.name:>5s} | Done: {is_done}")
+
 
 async def reset_dut(dut, duration: int = 10):
     """Reset the DUT."""
@@ -38,32 +42,37 @@ async def reset_dut(dut, duration: int = 10):
     dut.rst_n.value = 1
     await Timer(duration, unit="ns")
 
+
 @cocotb.test()
 async def test_fsm_reset(dut):
     """Test FSM reset functionality."""
     clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
-    
+
     await reset_dut(dut)
-    
+
     state = FsmState
     # Verify initial state after reset
-    assert dut.state.value == state.IDLE, f"FSM should be in IDLE state after reset, got {dut.state.value}"
+    assert dut.state.value == state.IDLE, (
+        f"FSM should be in IDLE state after reset, got {dut.state.value}"
+    )
+
 
 @cocotb.test()
 async def test_fsm_idle_and_outputs(dut):
     """
-    Verify that the FSM remains in IDLE 
+    Verify that the FSM remains in IDLE
     and 'done' is 0 without stimulus.
     """
     clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
     await reset_dut(dut)
-    
+
     for _ in range(5):
         await dut.clk.rising_edge
         assert dut.state.value == FsmState.IDLE
         assert dut.done.value == 0, "Error: 'done' must be 0 in IDLE"
+
 
 @cocotb.test()
 async def test_fsm_sequence_logic(dut):
@@ -90,14 +99,14 @@ async def test_fsm_sequence_logic(dut):
     await dut.clk.rising_edge
     await Timer(1, "ns")
     assert dut.state.value == FsmState.DONE
-    
 
     await dut.clk.rising_edge
     await Timer(1, "ns")
     assert dut.state.value == FsmState.IDLE
     assert dut.done.value == 1, "Error: 'done' must be 1 in the DONE state"
-    
+
     await Timer(10, "ns")
+
 
 @cocotb.test()
 async def test_fsm_reset_recovery(dut):
@@ -111,10 +120,10 @@ async def test_fsm_reset_recovery(dut):
     state = FsmState
     # Reach the WORK state
     dut.start.value = 1
-    await dut.clk.rising_edge # To START
-    await dut.clk.rising_edge # To WORK
+    await dut.clk.rising_edge  # To START
+    await dut.clk.rising_edge  # To WORK
     dut.start.value = 0
-    
+
     # Apply unexpected reset
     await reset_dut(dut, duration=5)
     assert dut.state.value == state.IDLE, "The FSM did not return to IDLE after reset"
@@ -129,12 +138,12 @@ async def test_fsm_monitor(dut):
     """
     clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
-    
+
     monitor = FSMMonitor(dut)
     cocotb.start_soon(monitor.start_monitoring())
-    
+
     await reset_dut(dut)
-    
+
     # Trigger FSM multiple times to see the sequence in the monitor
     for _ in range(3):
         dut.start.value = 1

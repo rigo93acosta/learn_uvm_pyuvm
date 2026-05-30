@@ -15,7 +15,7 @@ VERILOG_FILES = $(VERILOG_SOURCES)
 MODULE = common_patterns_example
 TOPLEVEL = simple_register
 COCOTB_REDUCED_LOG_FMT = 1
-
+WAVES := 1
 # Include cocotb makefile
 include $(shell cocotb-config --makefiles)/Makefile.sim
 

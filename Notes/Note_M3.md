@@ -149,3 +149,25 @@ No se configura con UVM_LOW/UVM_HIGH, sino con los niveles estándar de logging 
 
 En `configdb_example.py` se muestra cómo usar la Configuration Database (ConfigDB) de UVM para almacenar y recuperar configuraciones de manera jerárquica.
 
+```Python
+# Configuramos para el path del agente
+ConfigDB().set(self, "agent", "agent_config", agent_config)
+```
+
+En estos ejemplos se ha creado la siguiente estructura:
+
+
+    Tests
+      |
+      |
+ConfigurableEnv
+      |
+      |
+ConfigurableAgent <-- AgentConfig
+
+
+## Factory
+
+Todas las clases se registran automáticamente, por ende se puede emplear
+- `create()`
+- `uvm_factory().set_type_override()`

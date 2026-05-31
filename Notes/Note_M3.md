@@ -170,4 +170,26 @@ ConfigurableAgent <-- AgentConfig
 
 Todas las clases se registran automáticamente, por ende se puede emplear
 - `create()`
-- `uvm_factory().set_type_override()`
+- `uvm_factory().set_type_override_by_type()`
+
+## Objection Mechanism
+
+Las objeciones se usan para controlar la duración de las fases, especialmente `run_phase`. Un componente puede levantar una objeción para indicar que aún no ha terminado su trabajo, y luego bajarla cuando termine. El test no finalizará hasta que todas las objeciones estén bajadas.
+
+- `raise_objection()`: Levanta una objeción, incrementando el contador de objeciones.
+- `drop_objection()`: Baja una objeción, decrementando el contador. Si el contador llega a cero, se permite avanzar a la siguiente fase o finalizar el test.
+
+Nota: En pyuvm, el mecanismo de objeciones se maneja automáticamente al usar `await uvm_root().run_test()`, por lo que no es necesario implementar un loop de espera manual para las objeciones. El framework se encarga de esperar a que todas las objeciones estén bajadas antes de finalizar el test.
+
+## Test UVM Adder
+
+Siempre:
+
+Test → Env → Agent → Driver/Monitor/Sequencer
+
+Tener claro Secuencias y Secuencias Items:
+- `uvm_sequence_item`: Es la clase base para las transacciones. Define los campos que se van a enviar al DUT (por ejemplo, `data`, `address`, etc.).
+- `uvm_sequence`: Es la clase base para las secuencias. Define el comportamiento de generación de transacciones, como por ejemplo qué valores asignar a los campos de las transacciones, cuándo generarlas, etc.
+
+> En pyuvm, tanto los puertos comunes como los de "pull" se unificaron bajo una única clase base: uvm_seq_item_port.
+

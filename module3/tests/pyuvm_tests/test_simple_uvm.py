@@ -5,55 +5,32 @@ Complete UVM testbench for simple adder.
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import Timer, RisingEdge
+from cocotb.triggers import Timer, RisingEdge, ReadOnly, FallingEdge
 from pyuvm import *
 import pyuvm
-# In pyuvm, use uvm_seq_item_port instead of uvm_seq_item_pull_port
-# uvm_seq_item_port is available from pyuvm import * and works the same way
-# Create an alias for compatibility with code that expects uvm_seq_item_pull_port
-try:
-    # Check if uvm_seq_item_pull_port is available (for backward compatibility)
-    uvm_seq_item_pull_port  # type: ignore
-except NameError:
-    # Use uvm_seq_item_port as it's the correct class in pyuvm
-    uvm_seq_item_pull_port = uvm_seq_item_port
-
-# Also create alias for uvm_analysis_imp if not available
-try:
-    uvm_analysis_imp  # type: ignore
-except NameError:
-    # Try to find the correct analysis implementation class
-    try:
-        from pyuvm.s12_uvm_tlm_interfaces import uvm_analysis_imp_decl
-        uvm_analysis_imp = uvm_analysis_imp_decl
-    except ImportError:
-        # If not found, try uvm_analysis_export which can implement write
-        try:
-            uvm_analysis_imp = uvm_analysis_export
-        except NameError:
-            # Last resort - use uvm_analysis_port (won't work but won't crash)
-            uvm_analysis_imp = uvm_analysis_port
 
 
 class AdderTransaction(uvm_sequence_item):
     """Transaction for adder test."""
-    
+
     def __init__(self, name="AdderTransaction"):
         super().__init__(name)
         self.a = 0
         self.b = 0
         self.expected_sum = 0
         self.expected_carry = 0
-    
+
     def __str__(self):
-        return (f"a=0x{self.a:02X}, b=0x{self.b:02X}, "
-                f"expected_sum=0x{self.expected_sum:02X}, "
-                f"expected_carry={self.expected_carry}")
+        return (
+            f"a=0x{self.a:02X}, b=0x{self.b:02X}, "
+            f"expected_sum=0x{self.expected_sum:02X}, "
+            f"expected_carry={self.expected_carry}"
+        )
 
 
 class AdderSequence(uvm_sequence):
     """Sequence generating adder test vectors."""
-    
+
     async def body(self):
         """Generate test vectors."""
         test_vectors = [
@@ -63,7 +40,7 @@ class AdderSequence(uvm_sequence):
             (0x80, 0x80, 0x00, 1),  # Overflow
             (0x0A, 0x05, 0x0F, 0),
         ]
-        
+
         for a, b, expected_sum, expected_carry in test_vectors:
             txn = AdderTransaction()
             txn.a = a
@@ -81,47 +58,61 @@ class AdderDriver(uvm_driver):
         # pyuvm drivers already have seq_item_port by default
         # No need to create it manually
         self.dut = cocotb.top
-    
+
     async def run_phase(self):
         while True:
             txn = await self.seq_item_port.get_next_item()
             # In real implementation, drive DUT signals
+            
+            await FallingEdge(self.dut.clk)
             self.dut.a.value = txn.a
             self.dut.b.value = txn.b
+            await RisingEdge(self.dut.clk)
             self.logger.info(f"Driving: {txn}")
-            await Timer(10, unit="ns")
+            # await Timer(10, unit="ns")
             self.seq_item_port.item_done()
 
 
 class AdderMonitor(uvm_monitor):
     """Monitor for adder DUT."""
-    
+
     def build_phase(self):
         self.ap = uvm_analysis_port("ap", self)
         self.dut = cocotb.top
 
     async def run_phase(self):
         while True:
-            # In real implementation, sample DUT outputs
-            sum = self.dut.sum.value.to_unsigned()
-            carry = int(self.dut.carry.value)
-            await Timer(10, unit="ns")
-            self.logger.debug("Monitoring DUT")
+            await RisingEdge(self.dut.clk)
+            await ReadOnly()  # Nos aseguramos de estar al final del delta-cycle
+
+            # Verificamos que el DUT ya no esté escupiendo 'X' o 'Z'
+            if self.dut.sum.value.is_resolvable:
+                txn = AdderTransaction("mon_txn")
+                txn.a = self.dut.a.value.to_unsigned()
+                txn.b = self.dut.b.value.to_unsigned()
+                txn.expected_sum = self.dut.sum.value.to_unsigned()
+                txn.expected_carry = int(self.dut.carry.value)
+
+                self.ap.write(txn)
+            else:
+                self.logger.warning(
+                    "Ignorando ciclo: El DUT todavía está inicializándose (valores en X/Z)"
+                )
 
 
 class AdderScoreboard(uvm_subscriber):
     """Scoreboard for adder verification."""
-    
+
     def build_phase(self):
         # Use uvm_subscriber which automatically implements write() method
         self.expected = []
         self.actual = []
-    
+
     def write(self, txn):
         """Receive transactions from monitor."""
         self.actual.append(txn)
         self.logger.info(f"Scoreboard received: {txn}")
-    
+
     def check_phase(self):
         """Check phase - verify results."""
         self.logger.info("=" * 60)
@@ -130,18 +121,20 @@ class AdderScoreboard(uvm_subscriber):
         if len(self.expected) == len(self.actual):
             self.logger.info("✓ Transaction count matches")
         else:
-            self.logger.error(f"✗ Transaction count mismatch: "
-                            f"expected={len(self.expected)}, actual={len(self.actual)}")
+            self.logger.error(
+                f"✗ Transaction count mismatch: "
+                f"expected={len(self.expected)}, actual={len(self.actual)}"
+            )
 
 
 class AdderAgent(uvm_agent):
     """Agent for adder."""
-    
+
     def build_phase(self):
         self.driver = AdderDriver.create("driver", self)
         self.monitor = AdderMonitor.create("monitor", self)
         self.seqr = uvm_sequencer("sequencer", self)
-    
+
     def connect_phase(self):
         # In pyuvm, connect the sequencer to the driver
         # The sequencer has the seq_item_export, driver has seq_item_port
@@ -151,63 +144,45 @@ class AdderAgent(uvm_agent):
 
 class AdderEnv(uvm_env):
     """Environment for adder test."""
-    
+
     def build_phase(self):
         self.logger.info("Building AdderEnv")
         self.agent = AdderAgent.create("agent", self)
         self.scoreboard = AdderScoreboard.create("scoreboard", self)
-    
+
     def connect_phase(self):
         self.logger.info("Connecting AdderEnv")
         self.agent.monitor.ap.connect(self.scoreboard.analysis_export)
 
 
-# Note: @uvm_test() decorator removed to avoid import-time TypeError
 @pyuvm.test()
 class AdderTest(uvm_test):
     """Test class for adder."""
-    
+
     def build_phase(self):
         """Build phase - create environment."""
         self.logger.info("=" * 60)
         self.logger.info("Building AdderTest")
         self.logger.info("=" * 60)
         self.env = AdderEnv.create("env", self)
-    
+
     async def run_phase(self):
         self.raise_objection()
         self.logger.info("Running AdderTest")
-        
+
+        cocotb.start_soon(Clock(cocotb.top.clk, 10, unit="ns").start())
+
         # Start sequence
         seq = AdderSequence.create("seq")
         await seq.start(self.env.agent.seqr)
-        
-        await Timer(100, unit="ns")
+
+        await Timer(10, unit="ns")
         self.drop_objection()
-    
+
     def check_phase(self):
         self.logger.info("Checking AdderTest results")
-    
+
     def report_phase(self):
         self.logger.info("=" * 60)
         self.logger.info("AdderTest completed")
         self.logger.info("=" * 60)
-
-
-# Cocotb test function to run the pyuvm test
-# @cocotb.test()
-# async def test_adder(dut):
-#     """Cocotb test wrapper for AdderTest."""
-#     # Register the test class with uvm_root so run_test can find it
-#     if not hasattr(uvm_root(), 'm_uvm_test_classes'):
-#         uvm_root().m_uvm_test_classes = {}
-#     uvm_root().m_uvm_test_classes["AdderTest"] = AdderTest
-#     # Use uvm_root to run the test properly (executes all phases in hierarchy)
-#     await uvm_root().run_test("AdderTest")
-
-if __name__ == "__main__":
-    # Note: This is a structural example
-    # In practice, you would use cocotb to run this with a simulator
-    print("This is a pyuvm test structure example.")
-    print("To run with cocotb, use the Makefile in the test directory.")
-

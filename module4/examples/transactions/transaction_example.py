@@ -3,11 +3,12 @@ Module 4 Example: Transaction-Level Modeling
 Demonstrates transaction design, operations, and methods.
 """
 
+import pyuvm
 from pyuvm import *
 import cocotb
 from cocotb.triggers import Timer
 import copy
-
+import struct
 
 class BaseTransaction(uvm_sequence_item):
     """Base transaction class."""
@@ -78,41 +79,48 @@ class ConstrainedTransaction(uvm_sequence_item):
 
 
 class TransactionWithMethods(uvm_sequence_item):
-    """Transaction demonstrating useful methods."""
+    """Transaction demonstrating useful, pythonic methods."""
     
-    def __init__(self, name="TransactionWithMethods"):
+    def __init__(self, name: str = "TransactionWithMethods"):
         super().__init__(name)
-        self.data = 0
-        self.address = 0
+        self.data: int = 0
+        self.address: int = 0
     
-    def pack(self):
-        """Pack transaction into bytes."""
-        return bytes([self.data, self.address & 0xFF, (self.address >> 8) & 0xFF])
+    def pack(self) -> bytes:
+        """Pack transaction into bytes using struct."""
+        # '<B' es un byte, 'H' es un short de 16-bits, 
+        # ambos unsigned en Little-Endian
+        return struct.pack('<BH', self.data, self.address)
     
-    def unpack(self, data):
+    def unpack(self, data: bytes) -> None:
         """Unpack bytes into transaction."""
+        # Validamos que vengan exactamente los 3 bytes requeridos (1 + 2)
         if len(data) >= 3:
-            self.data = data[0]
-            self.address = data[1] | (data[2] << 8)
+            self.data, self.address = struct.unpack('<BH', data[:3])
     
-    def convert2string(self):
+    def convert2string(self) -> str:
         """Convert to string representation."""
         return f"data=0x{self.data:02X}, addr=0x{self.address:04X}"
     
-    def do_copy(self, rhs):
+    def __str__(self) -> str:
+        """Python magic method to allow printing the object directly."""
+        return self.convert2string()
+
+    def do_copy(self, rhs: 'TransactionWithMethods') -> None:
         """Copy method for UVM."""
         self.data = rhs.data
         self.address = rhs.address
     
-    def do_compare(self, rhs, comparer):
+    def do_compare(self, rhs: 'TransactionWithMethods', comparer) -> bool:
         """Compare method for UVM."""
-        return self.data == rhs.data and self.address == rhs.address
+        # Se puede simplificar la comparación si estás evaluando si todos los campos coinciden
+        return (self.data, self.address) == (rhs.data, rhs.address)
 
-
+@pyuvm.test()
 class TransactionTest(uvm_test):
     """Test demonstrating transaction usage."""
     
-    async def build_phase(self):
+    def build_phase(self):
         self.logger.info("=" * 60)
         self.logger.info("Transaction Example Test")
         self.logger.info("=" * 60)
@@ -169,31 +177,10 @@ class TransactionTest(uvm_test):
         unpacked.unpack(packed)
         self.logger.info(f"Unpacked: {unpacked}")
         
-        await Timer(10, units="ns")
+        await Timer(10, unit="ns")
         self.drop_objection()
     
     def report_phase(self):
         self.logger.info("=" * 60)
         self.logger.info("Transaction test completed")
         self.logger.info("=" * 60)
-
-
-# Cocotb test function to run the pyuvm test
-@cocotb.test()
-async def test_transaction(dut):
-    """Cocotb test wrapper for pyuvm transaction test."""
-    import inspect
-    test = TransactionTest.create("test")
-    await test.build_phase()
-    if hasattr(test, 'connect_phase') and inspect.iscoroutinefunction(test.connect_phase):
-        await test.connect_phase()
-    await test.run_phase()
-    if hasattr(test, 'check_phase'):
-        test.check_phase()
-    test.report_phase()
-
-
-if __name__ == "__main__":
-    print("This is a pyuvm transaction example.")
-    print("To run with cocotb, use the Makefile in the test directory.")
-

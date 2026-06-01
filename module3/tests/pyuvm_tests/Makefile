@@ -21,6 +21,12 @@ COCOTB_REDUCED_LOG_FMT = 1
 WAVES = 1
 # COMPILE_ARGS += --coverage --coverage-line --coverage-toggle
 
+# If using Verilator, enable tracing at runtime and enable FST only when zlib is available
+ifeq ($(SIM),verilator)
+VERILATOR_TRACE = 1
+COMPILE_ARGS += --trace-fst
+endif
+
 # Include cocotb makefile
 include $(shell cocotb-config --makefiles)/Makefile.sim
 

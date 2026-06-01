@@ -5,9 +5,12 @@ Complete UVM testbench for simple adder.
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import Timer, RisingEdge, ReadOnly, FallingEdge
+from cocotb.triggers import Timer, RisingEdge, ReadOnly, FallingEdge, ClockCycles
+
 from pyuvm import *
 import pyuvm
+
+from collections import deque
 
 
 class AdderTransaction(uvm_sequence_item):
@@ -62,18 +65,17 @@ class AdderDriver(uvm_driver):
     async def run_phase(self):
         while True:
             txn = await self.seq_item_port.get_next_item()
+            self.logger.info(f"Driving: {txn}")
             # In real implementation, drive DUT signals
-            
             await FallingEdge(self.dut.clk)
             self.dut.a.value = txn.a
             self.dut.b.value = txn.b
             await RisingEdge(self.dut.clk)
-            self.logger.info(f"Driving: {txn}")
             # await Timer(10, unit="ns")
             self.seq_item_port.item_done()
 
 
-class AdderMonitor(uvm_monitor):
+class AdderOutputMonitor(uvm_monitor):
     """Monitor for adder DUT."""
 
     def build_phase(self):
@@ -86,18 +88,40 @@ class AdderMonitor(uvm_monitor):
             await ReadOnly()  # Nos aseguramos de estar al final del delta-cycle
 
             # Verificamos que el DUT ya no esté escupiendo 'X' o 'Z'
-            if self.dut.sum.value.is_resolvable:
-                txn = AdderTransaction("mon_txn")
-                txn.a = self.dut.a.value.to_unsigned()
-                txn.b = self.dut.b.value.to_unsigned()
-                txn.expected_sum = self.dut.sum.value.to_unsigned()
-                txn.expected_carry = int(self.dut.carry.value)
+            assert self.dut.sum.value.is_resolvable, (
+                "¡El DUT generó un valor X o Z indeterminado!"
+            )
+            txn = AdderTransaction("out_mon_txn")
+            txn.expected_sum = self.dut.sum.value.to_unsigned()
+            txn.expected_carry = int(self.dut.carry.value)
 
-                self.ap.write(txn)
-            else:
-                self.logger.warning(
-                    "Ignorando ciclo: El DUT todavía está inicializándose (valores en X/Z)"
-                )
+            self.ap.write(txn)
+
+
+class AdderInputMonitor(uvm_monitor):
+    """Monitor for adder DUT."""
+
+    def build_phase(self):
+        self.ap = uvm_analysis_port("ap", self)
+        self.dut = cocotb.top
+
+    async def run_phase(self):
+        while True:
+            await RisingEdge(self.dut.clk)
+            await ReadOnly()  # Nos aseguramos de estar al final del delta-cycle
+
+            # Verificamos que el DUT ya no esté escupiendo 'X' o 'Z'
+            assert self.dut.a.value.is_resolvable, (
+                "¡El DUT generó en el PORT a un valor X o Z indeterminado!"
+            )
+            assert self.dut.b.value.is_resolvable, (
+                "¡El DUT generó en el PORT b un valor X o Z indeterminado!"
+            )
+            txn = AdderTransaction("in_mon_txn")
+            txn.a = self.dut.a.value.to_unsigned()
+            txn.b = self.dut.b.value.to_unsigned()
+
+            self.ap.write(txn)
 
 
 class AdderScoreboard(uvm_subscriber):
@@ -105,26 +129,65 @@ class AdderScoreboard(uvm_subscriber):
 
     def build_phase(self):
         # Use uvm_subscriber which automatically implements write() method
-        self.expected = []
-        self.actual = []
+        # 1. Creamos los exports genéricos
+        self.input_export = uvm_analysis_export("input_export", self)
+        self.output_export = uvm_analysis_export("output_export", self)
 
-    def write(self, txn):
+        # 2. Redirigimos el método write de cada export a nuestras funciones específicas
+        self.input_export.write = self.write_input
+        self.output_export.write = self.write_out
+
+        self.expected_deque = deque()
+        self.failed = 0
+
+    def write_input(self, txn):
+        """Recibe transacciones del Input Monitor (Estímulos)."""
+        # Calculamos la operación matemática de inmediato y la guardamos en la cola
+        full_sum = txn.a + txn.b
+        calc_sum = full_sum & 0xFF
+        calc_carry = 1 if full_sum > 0xFF else 0
+
+        # Guardamos el resultado "esperado" junto con los operandos para el reporte
+        expected_data = {"a": txn.a, "b": txn.b, "sum": calc_sum, "carry": calc_carry}
+        self.expected_deque.append(expected_data)
+        self.logger.info("SCO: Saved expected result.")
+
+    def write_out(self, txn):
         """Receive transactions from monitor."""
-        self.actual.append(txn)
         self.logger.info(f"Scoreboard received: {txn}")
+
+        if not self.expected_deque:
+            self.logger.error("SCO: No expected data available for comparison!")
+            self.failed += 1
+            return
+
+        expected_data = self.expected_deque.popleft()
+
+        if (
+            txn.expected_sum != expected_data["sum"]
+            or txn.expected_carry != expected_data["carry"]
+        ):
+            self.logger.error(
+                f"[FAIL] Mismatch in expected results: "
+                f"Expected sum=0x{expected_data['sum']:02X}, "
+                f"Expected carry={expected_data['carry']}, "
+                f"Got sum=0x{txn.expected_sum:02X}, "
+                f"Got carry={txn.expected_carry}"
+            )
+            self.failed += 1
+        else:
+            self.logger.info(
+                "[OK] Expected results match the output monitor transaction."
+            )
 
     def check_phase(self):
         """Check phase - verify results."""
         self.logger.info("=" * 60)
         self.logger.info("Scoreboard Check")
-        self.logger.info(f"Total transactions: {len(self.actual)}")
-        if len(self.expected) == len(self.actual):
-            self.logger.info("✓ Transaction count matches")
+        if self.failed == 0:
+            self.logger.info("All transactions passed!")
         else:
-            self.logger.error(
-                f"✗ Transaction count mismatch: "
-                f"expected={len(self.expected)}, actual={len(self.actual)}"
-            )
+            self.logger.error(f"{self.failed} transactions failed!")
 
 
 class AdderAgent(uvm_agent):
@@ -132,7 +195,8 @@ class AdderAgent(uvm_agent):
 
     def build_phase(self):
         self.driver = AdderDriver.create("driver", self)
-        self.monitor = AdderMonitor.create("monitor", self)
+        self.in_monitor = AdderInputMonitor.create("in_monitor", self)
+        self.out_monitor = AdderOutputMonitor.create("out_monitor", self)
         self.seqr = uvm_sequencer("sequencer", self)
 
     def connect_phase(self):
@@ -152,7 +216,9 @@ class AdderEnv(uvm_env):
 
     def connect_phase(self):
         self.logger.info("Connecting AdderEnv")
-        self.agent.monitor.ap.connect(self.scoreboard.analysis_export)
+        self.agent.in_monitor.ap.connect(self.scoreboard.input_export)
+        self.agent.out_monitor.ap.connect(self.scoreboard.output_export)
+        
 
 
 @pyuvm.test()
@@ -171,7 +237,14 @@ class AdderTest(uvm_test):
         self.logger.info("Running AdderTest")
 
         cocotb.start_soon(Clock(cocotb.top.clk, 10, unit="ns").start())
-
+        # Reset directo por hardware usando cocotb
+        self.logger.info("Applying reset")
+        cocotb.top.rst_n.value = 0
+        cocotb.top.a.value = 0
+        cocotb.top.b.value = 0
+        await ClockCycles(cocotb.top.clk, 1)
+        cocotb.top.rst_n.value = 1
+        
         # Start sequence
         seq = AdderSequence.create("seq")
         await seq.start(self.env.agent.seqr)

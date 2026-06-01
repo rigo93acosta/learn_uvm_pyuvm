@@ -96,6 +96,7 @@ class AdderOutputMonitor(uvm_monitor):
             txn.expected_carry = int(self.dut.carry.value)
 
             self.ap.write(txn)
+            self.logger.info(f"Output Monitor captured: sum=0x{txn.expected_sum:02X}, carry={txn.expected_carry}")
 
 
 class AdderInputMonitor(uvm_monitor):
@@ -122,13 +123,14 @@ class AdderInputMonitor(uvm_monitor):
             txn.b = self.dut.b.value.to_unsigned()
 
             self.ap.write(txn)
-
+            self.logger.info(f"Input Monitor captured: a=0x{txn.a:02X}, b=0x{txn.b:02X}")
 
 class AdderScoreboard(uvm_subscriber):
     """Scoreboard for adder verification."""
 
     def build_phase(self):
         # Use uvm_subscriber which automatically implements write() method
+        self.logger.info("Building AdderScoreboard")
         # 1. Creamos los exports genéricos
         self.input_export = uvm_analysis_export("input_export", self)
         self.output_export = uvm_analysis_export("output_export", self)
@@ -150,11 +152,10 @@ class AdderScoreboard(uvm_subscriber):
         # Guardamos el resultado "esperado" junto con los operandos para el reporte
         expected_data = {"a": txn.a, "b": txn.b, "sum": calc_sum, "carry": calc_carry}
         self.expected_deque.append(expected_data)
-        self.logger.info("SCO: Saved expected result.")
+        self.logger.info("[SCO-IN]: Getted result.")
 
     def write_out(self, txn):
         """Receive transactions from monitor."""
-        self.logger.info(f"Scoreboard received: {txn}")
 
         if not self.expected_deque:
             self.logger.error("SCO: No expected data available for comparison!")
@@ -179,6 +180,7 @@ class AdderScoreboard(uvm_subscriber):
             self.logger.info(
                 "[OK] Expected results match the output monitor transaction."
             )
+        self.logger.info("[SCO-OUT]: Getted result.")
 
     def check_phase(self):
         """Check phase - verify results."""

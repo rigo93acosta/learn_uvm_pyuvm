@@ -1,6 +1,0 @@
-<testsuites name="results">
-  <testsuite name="all" package="all">
-    <property name="random_seed" value="1768574443" />
-    <testcase name="test_sequencer" classname="sequencer_example" file="/home/yongfu/proj/learn_uvm_pyuvm/module4/examples/sequencers/sequencer_example.py" lineno="243" time="0.0008566379547119141" sim_time_ns="10.0" ratio_time="11673.54300027832" />
-  </testsuite>
-</testsuites>

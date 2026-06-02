@@ -48,3 +48,14 @@ En esta parte no hay mucho que aportar es la manera en que empaquetamos las tran
 
 ## Monitors
 
+Topico fundamental los puertos de analisis y la creacion de transacciones a partir de las señales del DUT.
+
+**Flujo del Monitor:**
+1. `build_phase()` - Crea `analysis_port`
+2. `run_phase()` - Bucle principal del monitor:
+   - `sample_signals()` - Muestra señales del DUT
+   - Crea una transacción a partir de los datos muestreados
+   - `ap.write()` - Difunde mediante analysis port
+
+Muestrear los datos del DUT puede ser complejo dependiendo del protocolo, es importante entender la temporización y las condiciones de muestreo. Para ganar en readabilidad, es recomendable encapsular la lógica de muestreo en funciones auxiliares; en el caso del codigo que vemos se encapsula en funciones `sample_signals()` y `sample_protocol_signals()`.
+

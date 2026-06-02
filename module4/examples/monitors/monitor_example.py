@@ -3,6 +3,7 @@ Module 4 Example 4.2: UVM Monitor Implementation
 Demonstrates monitor implementation with signal sampling and analysis ports.
 """
 
+import pyuvm
 from pyuvm import *
 import cocotb
 from cocotb.triggers import Timer, RisingEdge
@@ -61,7 +62,7 @@ class SimpleMonitor(uvm_monitor):
         - Create and populate transaction
         """
         # Simulate signal sampling
-        await Timer(10, units="ns")
+        await Timer(10, unit="ns")
         
         # In real code:
         # await RisingEdge(cocotb.dut.valid)
@@ -72,7 +73,7 @@ class SimpleMonitor(uvm_monitor):
         txn = MonitorTransaction()
         txn.data = 0xAB  # Simulated sampled value
         txn.address = 0x1000  # Simulated sampled value
-        txn.timestamp = cocotb.utils.get_sim_time(units='ns') if hasattr(cocotb, 'dut') else 0
+        txn.timestamp = cocotb.utils.get_sim_time(unit='ns') if hasattr(cocotb, 'dut') else 0
         
         return txn
 
@@ -111,7 +112,7 @@ class ProtocolMonitor(uvm_monitor):
     async def wait_for_protocol_event(self):
         """Wait for protocol-specific event."""
         # In real code: await RisingEdge(cocotb.dut.valid)
-        await Timer(10, units="ns")
+        await Timer(10, unit="ns")
     
     async def sample_protocol_signals(self):
         """Sample signals based on protocol."""
@@ -133,16 +134,17 @@ class MonitorAgent(uvm_agent):
     
     def build_phase(self):
         self.logger.info("Building MonitorAgent")
-        self.monitor = SimpleMonitor.create("monitor", self)
+        # self.monitor = SimpleMonitor.create("monitor", self)
+        self.monitor = ProtocolMonitor.create("protocol_monitor", self)
     
     def connect_phase(self):
         self.logger.info("Connecting MonitorAgent")
 
-
+@pyuvm.test()
 class MonitorTest(uvm_test):
     """Test demonstrating monitor usage."""
     
-    async def build_phase(self):
+    def build_phase(self):
         self.logger.info("=" * 60)
         self.logger.info("Monitor Example Test")
         self.logger.info("=" * 60)
@@ -151,31 +153,10 @@ class MonitorTest(uvm_test):
     async def run_phase(self):
         self.raise_objection()
         self.logger.info("Running monitor test")
-        await Timer(100, units="ns")
+        await Timer(100, unit="ns")
         self.drop_objection()
     
     def report_phase(self):
         self.logger.info("=" * 60)
         self.logger.info("Monitor test completed")
         self.logger.info("=" * 60)
-
-
-# Cocotb test function to run the pyuvm test
-@cocotb.test()
-async def test_monitor(dut):
-    """Cocotb test wrapper for pyuvm monitor test."""
-    import inspect
-    test = MonitorTest.create("test")
-    await test.build_phase()
-    if hasattr(test, 'connect_phase') and inspect.iscoroutinefunction(test.connect_phase):
-        await test.connect_phase()
-    await test.run_phase()
-    if hasattr(test, 'check_phase'):
-        test.check_phase()
-    test.report_phase()
-
-
-if __name__ == "__main__":
-    print("This is a pyuvm monitor example.")
-    print("To run with cocotb, use the Makefile in the test directory.")
-

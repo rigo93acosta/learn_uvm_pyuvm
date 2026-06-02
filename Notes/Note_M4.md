@@ -45,3 +45,6 @@ En esta parte no hay mucho que aportar es la manera en que empaquetamos las tran
 - **`item_done()`**: Señalar la finalización de la transacción al sequencer
 - **`run_phase()`**: Bucle principal del driver
 - **Implementación del protocolo**: Conducir señales según la temporización del protocolo
+
+## Monitors
+

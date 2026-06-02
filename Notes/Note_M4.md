@@ -59,3 +59,24 @@ Topico fundamental los puertos de analisis y la creacion de transacciones a part
 
 Muestrear los datos del DUT puede ser complejo dependiendo del protocolo, es importante entender la temporización y las condiciones de muestreo. Para ganar en readabilidad, es recomendable encapsular la lógica de muestreo en funciones auxiliares; en el caso del codigo que vemos se encapsula en funciones `sample_signals()` y `sample_protocol_signals()`.
 
+> En el `run_phase`, antes de entrar al bucle infinito while True, asegúrate de esperar a que el reset del sistema se desactive (ej. `await FallingEdge(self.dut.rst_n)`).
+
+## Sequencer 
+
+Lo importante es enteder la estructura general
+
+**Flujo de Secuencia:**
+1. `body()` - Método de ejecución de la secuencia
+2. `start_item(txn)` - Solicita una transacción al sequencer
+3. `finish_item(txn)` - Envía la transacción al driver
+4. La secuencia termina cuando `body()` retorna
+
+> `uvm_sequence_item` / `uvm_sequence`: Son objetos dinámicos. Se crean, se ejecutan y se destruyen sobre la marcha. Como no forman parte de la estructura jerárquica fija del testbench, `pyuvm` no les asigna automáticamente un logger en su inicialización de la misma manera que a un componente.
+
+```Python
+if not hasattr(self, "logger"):
+   import logging
+   self.logger = logging.getLogger(f"{self.__class__.__name__}.{self.get_name()}")
+   self.logger.setLevel(logging.INFO)
+```
+

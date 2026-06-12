@@ -62,7 +62,7 @@ class SimpleMonitor(uvm_monitor):
         - Create and populate transaction
         """
         # Simulate signal sampling
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
         
         # In real code:
         # await RisingEdge(cocotb.dut.valid)
@@ -73,7 +73,7 @@ class SimpleMonitor(uvm_monitor):
         txn = MonitorTransaction()
         txn.data = 0xAB  # Simulated sampled value
         txn.address = 0x1000  # Simulated sampled value
-        txn.timestamp = cocotb.utils.get_sim_time(unit='ns') if hasattr(cocotb, 'dut') else 0
+        txn.timestamp = cocotb.utils.get_sim_time(units='ns') if hasattr(cocotb, 'dut') else 0
         
         return txn
 
@@ -112,7 +112,7 @@ class ProtocolMonitor(uvm_monitor):
     async def wait_for_protocol_event(self):
         """Wait for protocol-specific event."""
         # In real code: await RisingEdge(cocotb.dut.valid)
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
     
     async def sample_protocol_signals(self):
         """Sample signals based on protocol."""
@@ -153,7 +153,7 @@ class MonitorTest(uvm_test):
     async def run_phase(self):
         self.raise_objection()
         self.logger.info("Running monitor test")
-        await Timer(100, unit="ns")
+        await Timer(100, units="ns")
         self.drop_objection()
     
     def report_phase(self):

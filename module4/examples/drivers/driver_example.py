@@ -161,7 +161,7 @@ class DriverTest(uvm_test):
         # seq = SimpleSequence.create("seq")
         # await seq.start(self.env.seqr)
 
-        await Timer(50, unit="ns")
+        await Timer(50, units="ns")
         self.drop_objection()
 
     def report_phase(self):

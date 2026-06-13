@@ -148,7 +148,7 @@ class SequencerDriver(uvm_driver):
 
             # Simulate processing with DUT
 
-            await Timer(1, unit="ns")
+            await Timer(1, units="ns")
             self.seq_item_port.item_done()
 
 
@@ -190,7 +190,7 @@ class SequencerTest(uvm_test):
         # await seq3.start(self.env.seqr)
 
         self.logger.info("Sequencer components created and connected successfully")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
         self.drop_objection()
 
     def report_phase(self):
@@ -216,7 +216,7 @@ class LayeredSequenceTest(uvm_test):
         await layered_seq.start(self.env.seqr)
 
         self.logger.info("Layered sequence started successfully")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
         self.drop_objection()
 
     def report_phase(self):

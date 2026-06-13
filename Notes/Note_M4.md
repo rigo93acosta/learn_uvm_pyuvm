@@ -69,7 +69,7 @@ Lo importante es enteder la estructura general
 1. `body()` - Método de ejecución de la secuencia
 2. `start_item(txn)` - Solicita una transacción al sequencer
 3. `finish_item(txn)` - Envía la transacción al driver
-4. La secuencia termina cuando `body()` retorna, de ser necesario, algún objeto. 
+4. La secuencia termina cuando `body()` retorna, de ser necesario, algún objeto.    
 
 > `uvm_sequence_item` / `uvm_sequence`: Son objetos dinámicos. Se crean, se ejecutan y se destruyen sobre la marcha. Como no forman parte de la estructura jerárquica fija del testbench, `pyuvm` no les asigna automáticamente un logger en su inicialización de la misma manera que a un componente.
 
@@ -81,4 +81,7 @@ if not hasattr(self, "logger"):
 ```
 
 > Nota:
-> A futuro, los sequences puede ser complejos
+> A futuro, los sequences puede ser complejos pueden tener agentes que gestionen que tipos de sequencias se van a enviar al dut.
+
+## TLM (Transaction-Level Modeling)
+

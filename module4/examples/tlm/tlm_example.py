@@ -43,12 +43,11 @@ class PutProducer(uvm_component):
         self.drop_objection()
 
 
-class PutConsumer(uvm_component):
+class PutConsumer(uvm_put_export):
     """Component using put export to receive transactions."""
 
     def build_phase(self):
         self.logger.info(f"[{self.get_name()}] Building PutConsumer")
-        self.put_export = uvm_put_export("put_export", self)
 
     async def put(self, txn):
         """Put implementation method."""
@@ -66,12 +65,11 @@ class PutConsumer(uvm_component):
 
 
 # TLM Get Interface Example
-class GetProducer(uvm_component):
+class GetProducer(uvm_get_export):
     """Component using get export to provide transactions."""
 
     def build_phase(self):
         self.logger.info(f"[{self.get_name()}] Building GetProducer")
-        self.get_export = uvm_get_export("get_export", self)
 
         self.transactions = []
         for i in range(5):
@@ -202,10 +200,10 @@ class TLMEnv(uvm_env):
     def connect_phase(self):
         self.logger.info("Connecting TLMEnv")
         # Connect put interface
-        self.put_producer.put_port.connect(self.put_consumer.put_export)
+        self.put_producer.put_port.connect(self.put_consumer)
 
         # Connect get interface
-        self.get_consumer.get_port.connect(self.get_producer.get_export)
+        self.get_consumer.get_port.connect(self.get_producer)
 
         # Connect FIFO
         self.fifo_producer.put_port.connect(self.fifo.put_export)

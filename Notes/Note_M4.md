@@ -85,3 +85,5 @@ if not hasattr(self, "logger"):
 
 ## TLM (Transaction-Level Modeling)
 
+En pyuvm, las clases `uvm_put_export`, `uvm_get_export`, etc., esperan recibir como segundo argumento (parent) un objeto que implemente los métodos exactamente como funciones normales (def), o bien que se herede directamente de la clase export. Con esto, pyuvm confía plenamente en el componente y te permite ejecutar tus tareas asíncronas (async def put) sin que salte el sistema de seguridad de tipos.
+

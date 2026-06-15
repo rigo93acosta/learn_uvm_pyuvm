@@ -1,7 +1,0 @@
-<testsuites name="results">
-  <testsuite name="all" package="all">
-    <property name="random_seed" value="1781533033" />
-    <testcase name="CompleteAgentTest" classname="agent_example" file="/home/racostagonzalez/Documents/Learn/learn_uvm_pyuvm/.venv/lib/python3.13/site-packages/pyuvm/extension_classes.py" lineno="169" time="0.008949518203735352" sim_time_ns="100.001" ratio_time="11173.897602472229" />
-    <testcase name="PassiveAgentTest" classname="agent_example" file="/home/racostagonzalez/Documents/Learn/learn_uvm_pyuvm/.venv/lib/python3.13/site-packages/pyuvm/extension_classes.py" lineno="198" time="0.0005834102630615234" sim_time_ns="100.001" ratio_time="171407.680549244" />
-  </testsuite>
-</testsuites>

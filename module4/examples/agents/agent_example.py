@@ -57,7 +57,7 @@ class AgentDriver(uvm_driver):
             # In real code: cocotb.dut.address.value = item.address
             await Timer(10, units="ns")
 
-            await self.seq_item_port.item_done()
+            self.seq_item_port.item_done()
 
 
 class AgentMonitor(uvm_monitor):
@@ -182,9 +182,9 @@ class CompleteAgentTest(uvm_test):
 
         # Note: Sequence starting has issues in current pyuvm implementation
         # In a working implementation, you would start sequences here:
-        # if self.env.agent.active:
-        #     seq = AgentSequence.create("seq")
-        #     await seq.start(self.env.agent.seqr)
+        if self.env.agent.active:
+            seq = AgentSequence.create("seq")
+            await seq.start(self.env.agent.seqr)
 
         self.logger.info("Agent components created and connected successfully")
         await Timer(100, units="ns")

@@ -87,3 +87,49 @@ if not hasattr(self, "logger"):
 
 En pyuvm, las clases `uvm_put_export`, `uvm_get_export`, etc., esperan recibir como segundo argumento (parent) un objeto que implemente los métodos exactamente como funciones normales (def), o bien que se herede directamente de la clase export. Con esto, pyuvm confía plenamente en el componente y te permite ejecutar tus tareas asíncronas (async def put) sin que salte el sistema de seguridad de tipos.
 
+### El Núcleo de la Filosofía TLM: Iniciativa vs. Dirección del Dato
+
+El error conceptual más común al aprender TLM es confundir el camino físico que recorre un paquete de datos con el componente de software que inicia la transferencia. TLM resuelve esto dividiendo el problema en dos ejes independientes: la **Intención** (el verbo que define quién tiene el control del tiempo) y el **Mapeo de Software** (quién inicia la llamada y quién proporciona el código).
+
+Independientemente de la interfaz utilizada, existe una regla física inmutable en los tres modelos principales: **los datos siempre viajan desde el componente que actúa como Productor hacia el componente que actúa como Consumidor**. Lo que cambia de manera radical es cuál de los dos extremos es el "dueño" del hilo de ejecución en la simulación.
+
+### La Simplificación de la Arquitectura en `pyuvm`
+
+A diferencia del estándar tradicional de UVM en SystemVerilog, donde los puertos, exports e implementations (`imp`) son entidades abstractas completamente desconectadas de los componentes jerárquicos, `pyuvm` simplifica la estructura eliminando los puertos `imp` mediante el uso estratégico de la herencia de Python.
+
+En `pyuvm`, las clases base de llegada (como `uvm_put_export`, `uvm_get_export` o `uvm_transport_export`) **heredan directamente de `uvm_component**`. Esto otorga una doble identidad a los receptores: siguen integrándose de forma nativa en el árbol estructural del testbench, participan en las fases estándar (como `build_phase` o `connect_phase`) y poseen herramientas de reporte de errores (`self.logger`), pero simultáneamente **se convierten en el puerto de destino físico**.
+
+Debido a esta arquitectura, el componente receptor no necesita instanciar sub-puertos internos; simplemente sobreescribe directamente en su propio cuerpo los métodos requeridos por el protocolo.
+
+### Desglose de las Tres Interfaces Principales
+
+#### 1. El Modelo Put: Productor Activo, Consumidor Pasivo
+
+En este escenario, el control del tiempo y la iniciativa de la simulación residen en el Productor. Este componente se define como un `uvm_component` genérico y aloja internamente una instancia de salida llamada `uvm_put_port`. Al estar activo, ejecuta un bucle en su `run_phase` y decide de manera autónoma cuándo generar y "empujar" un paquete.
+
+Por otro lado, el Consumidor adopta un rol completamente reactivo. Hereda directamente de `uvm_put_export`, lo que lo obliga a implementar en su estructura los métodos `put()`, `try_put()` y `can_put()`. El Consumidor no controla cuándo le llega la información; simplemente permanece a la espera, y cuando el Productor invoca de manera asíncrona un `await puerto.put()`, el framework de `pyuvm` redirige la ejecución para activar instantáneamente el código escrito en el Consumidor.
+
+#### 2. El Modelo Get: Consumidor Activo, Productor Pasivo
+
+Este modelo invierte por completo la dinámica del control temporal. Aquí, el Consumidor es el actor proactivo encargado de gobernar la `run_phase` y gestionar las objeciones del test. Al extender de `uvm_component`, aloja un `uvm_get_port` que utiliza para "estirar la mano" y solicitar transacciones bajo su propio criterio de tiempos mediante la instrucción `txn = await puerto.get()`.
+
+En el otro extremo, el Productor se transforma en un almacén pasivo o un servidor de datos reactivo. Hereda de `uvm_get_export` y carece por completo de una `run_phase` propia. En su lugar, prepara las transacciones en memoria durante las fases de configuración y se queda "dormido". Solo se despierta delta-instantes cuando el Consumidor jala del cable de comunicación, ejecutando de forma remota las funciones `get()`, `try_get()` o `can_get()` para servir el paquete solicitado y volver a quedar en reposo.
+
+#### 3. El Modelo Transport: Petición y Respuesta en una Operación Atómica
+
+Cuando el flujo de verificación exige un intercambio de ida y vuelta inmediato (por ejemplo, al modelar transacciones de lectura/escritura en un bus de microcontrolador), los modelos unidireccionales individuales se quedan cortos. La interfaz Transport unifica el comportamiento de un `Put` y un `Get` en una única llamada de software atómica.
+
+El componente maestro (activo) realiza una llamada enviando un objeto de petición (`request`) y detiene su ejecución en un punto de bloqueo esperando una respuesta (`response`). El componente esclavo hereda de `uvm_transport_export` (asumiendo el rol de puerto destino) e implementa el método `transport()`. Este recibe la pregunta, interactúa con el modelo o el hardware si es necesario, y retorna la respuesta. La gran ventaja es que la ida y la vuelta ocurren en el mismo hilo de ejecución, eliminando la necesidad de coordinar dos canales independientes.
+
+
+### El Desacoplamiento Perfecto: `uvm_tlm_fifo`
+
+A pesar de la elegancia de las conexiones directas "boca a boca", estas obligan a que un extremo sea estrictamente pasivo (reactivo) frente al otro. Para lograr que tanto el Productor como el Consumidor mantengan vidas independientes con bucles concurrentes activos en sus respectivas fases de ejecución, se introduce la FIFO TLM (`uvm_tlm_fifo`) como un elemento intermediario.
+
+Al implementar una FIFO en el entorno, se rompe la conexión directa y se aplican las reglas de coincidencia de interfaces en ambos lados de manera independiente:
+
+En el lado izquierdo, el Productor mantiene un `uvm_put_port` activo y se conecta al `put_export` de la FIFO. El productor "empuja" datos cuando su lógica lo dicta. Si la FIFO se llena, la corrutina asíncrona de su puerto se bloquea automáticamente mediante `await`, pausando al productor sin congelar el resto del entorno.
+
+En el lado derecho, el Consumidor mantiene un `uvm_get_port` activo y se conecta al `get_export` de la misma FIFO. El consumidor "extrae" datos al ritmo que sus unidades de procesamiento lo demanden. Si la FIFO se queda vacía, su instrucción `await` suspende el hilo del consumidor hasta que el productor inyecte un nuevo elemento.
+
+La FIFO actúa como un amortiguador y un sincronizador implícito de eventos. Logra que ambos actores interactúen de manera descentralizada y asíncrona, eliminando la necesidad de banderas lógicas globales o eventos manuales de sincronización en `cocotb`.

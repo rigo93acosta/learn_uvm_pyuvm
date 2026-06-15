@@ -170,7 +170,7 @@ class AgentEnv(uvm_env):
 class CompleteAgentTest(uvm_test):
     """Test demonstrating complete agent."""
 
-    async def build_phase(self):
+    def build_phase(self):
         self.logger.info("=" * 60)
         self.logger.info("Complete Agent Example Test")
         self.logger.info("=" * 60)
@@ -199,7 +199,7 @@ class CompleteAgentTest(uvm_test):
 class PassiveAgentTest(uvm_test):
     """Test demonstrating passive agent."""
 
-    async def build_phase(self):
+    def build_phase(self):
         self.logger.info("=" * 60)
         self.logger.info("Passive Agent Example Test")
         self.logger.info("=" * 60)

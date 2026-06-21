@@ -92,7 +92,7 @@ class AdderOutputMonitor(uvm_monitor):
                 "¡El DUT generó un valor X o Z indeterminado!"
             )
             txn = AdderTransaction("out_mon_txn")
-            txn.expected_sum = self.dut.sum.value.to_unsigned()
+            txn.expected_sum = self.dut.sum.value.integer
             txn.expected_carry = int(self.dut.carry.value)
 
             self.ap.write(txn)
@@ -119,8 +119,8 @@ class AdderInputMonitor(uvm_monitor):
                 "¡El DUT generó en el PORT b un valor X o Z indeterminado!"
             )
             txn = AdderTransaction("in_mon_txn")
-            txn.a = self.dut.a.value.to_unsigned()
-            txn.b = self.dut.b.value.to_unsigned()
+            txn.a = self.dut.a.value.integer
+            txn.b = self.dut.b.value.integer
 
             self.ap.write(txn)
             self.logger.info(f"Input Monitor captured: a=0x{txn.a:02X}, b=0x{txn.b:02X}")
@@ -238,7 +238,7 @@ class AdderTest(uvm_test):
         self.raise_objection()
         self.logger.info("Running AdderTest")
 
-        cocotb.start_soon(Clock(cocotb.top.clk, 10, unit="ns").start())
+        cocotb.start_soon(Clock(cocotb.top.clk, 10, units="ns").start())
         # Reset directo por hardware usando cocotb
         self.logger.info("Applying reset")
         cocotb.top.rst_n.value = 0
@@ -251,7 +251,7 @@ class AdderTest(uvm_test):
         seq = AdderSequence.create("seq")
         await seq.start(self.env.agent.seqr)
 
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
         self.drop_objection()
 
     def check_phase(self):

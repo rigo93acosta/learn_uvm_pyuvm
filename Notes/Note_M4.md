@@ -14,15 +14,15 @@
 ## Interfaz
 
 
-| Port name | Direction |	Type	     | 
-| ---       |   ---     |   ---          |
-| clk	    | input     | 	wire         |  
-| rst_n	    | input	    |   wire         |	
-| valid	    | input	    |   wire         |
-| ready	    | output    |		         |
-| data      | input     |	wire [7:0]	 |
-| address   | input     |	wire [15:0]	 |
-| result    | output    |	[7:0]	     |
+| Port name | Direction |	Type	      | 
+| ---       |   ---     |   ---        |
+| clk	      | input     | 	wire        |  
+| rst_n	   | input	   |   wire       |	
+| valid	   | input	   |   wire       |
+| ready	   | output    |		         |
+| data      | input     |	wire [7:0]	|
+| address   | input     |	wire [15:0]	|
+| result    | output    |	[7:0]	      |
 
 ## Transacción
 

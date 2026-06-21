@@ -156,15 +156,17 @@ ConfigDB().set(self, "agent", "agent_config", agent_config)
 
 En estos ejemplos se ha creado la siguiente estructura:
 
-
+```Markdown
     Tests
       |
       |
+      V
 ConfigurableEnv
       |
       |
+      V
 ConfigurableAgent <-- AgentConfig
-
+```
 
 ## Factory
 

@@ -25,24 +25,24 @@ module multi_channel (
     input  wire [7:0] slave_data
 );
 
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            master_ready <= 1'b0;
-            slave_ready <= 1'b0;
-        end else begin
-            if (master_valid) begin
-                master_ready <= 1'b1;
-            end else begin
-                master_ready <= 1'b0;
-            end
-            
-            if (slave_valid) begin
-                slave_ready <= 1'b1;
-            end else begin
-                slave_ready <= 1'b0;
-            end
-        end
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      master_ready <= 1'b0;
+      slave_ready  <= 1'b0;
+    end else begin
+      if (master_valid) begin
+        master_ready <= 1'b1;
+      end else begin
+        master_ready <= 1'b0;
+      end
+
+      if (slave_valid) begin
+        slave_ready <= 1'b1;
+      end else begin
+        slave_ready <= 1'b0;
+      end
     end
+  end
 
 endmodule
 

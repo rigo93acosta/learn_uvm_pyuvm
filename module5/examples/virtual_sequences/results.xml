@@ -1,6 +1,8 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-    <property name="random_seed" value="1782681834" />
-    <testcase name="VirtualSequenceTest" classname="virtual_sequence_example" file="/home/racostagonzalez/Documents/Learn/learn_uvm_pyuvm/.venv/lib/python3.13/site-packages/pyuvm/extension_classes.py" lineno="212" time="0.0038671493530273438" sim_time_ns="57.001" ratio_time="14739.797922564734" />
+    <property name="random_seed" value="1783086770" />
+    <testcase name="VirtualSequenceTest" classname="virtual_sequence_example" file="/home/racostagonzalez/Documents/Learn/learn_uvm_pyuvm/.venv/lib/python3.13/site-packages/pyuvm/extension_classes.py" lineno="212" time="0.000858306884765625" sim_time_ns="0.001" ratio_time="1.1650844444444444">
+      <failure message="Test failed with RANDOM_SEED=1783086770" />
+    </testcase>
   </testsuite>
 </testsuites>

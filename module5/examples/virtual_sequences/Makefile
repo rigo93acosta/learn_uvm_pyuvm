@@ -15,6 +15,8 @@ VERILOG_FILES = $(VERILOG_SOURCES)
 MODULE = virtual_sequence_example
 TOPLEVEL = multi_channel
 COCOTB_REDUCED_LOG_FMT = 1
+WAVES = 1
+EXTRA_ARGS += --trace --trace-structs
 
 # Include cocotb makefile
 include $(shell cocotb-config --makefiles)/Makefile.sim

@@ -33,7 +33,7 @@ class ChannelSequence(uvm_sequence):
     async def body(self):
         """Generate transactions for this channel."""
         # Sequences don't have logger by default
-        print(f"[{self.get_name()}] Starting channel {self.channel} sequence")
+        logging.info(f"[{self.get_name()}] Starting channel {self.channel} sequence")
 
         for i in range(self.num_items):
             txn = VirtualTransaction()
@@ -43,7 +43,7 @@ class ChannelSequence(uvm_sequence):
             await self.start_item(txn)
             await self.finish_item(txn)
 
-            print(
+            logging.info(
                 f"[{self.get_name()}] Generated transaction {i} for channel {self.channel}: {txn}"
             )
 
@@ -61,57 +61,65 @@ class VirtualSequence(uvm_sequence):
 
     def __init__(self, name="VirtualSequence"):
         super().__init__(name)
-        # Virtual sequencer references (set by test)
-        self.master_seqr = None
-        self.slave_seqr = None
+
+        if not hasattr(self, "logger"):
+            import logging
+            self.logger = logging.getLogger(f"{self.__class__.__name__}.{self.get_name()}")
+            self.logger.setLevel(logging.INFO)
 
     async def body(self):
         """Body method - coordinate multiple sequences."""
-        # Sequences don't have logger by default, use print or get logger from sequencer
-        print("=" * 60)
-        print(f"[{self.get_name()}] Starting virtual sequence")
-        print("=" * 60)
+        # The sequencer we were started on IS the virtual sequencer.
+        # We get the real sequencer references from it, not from attributes
+        # set by hand. This is the whole point of the virtual sequencer:
+        # a single place that holds the handles to the real sequencers.
+        master_seqr = self.sequencer.master_seqr
+        slave_seqr = self.sequencer.slave_seqr
+
+        self.logger.info("=" * 60)
+        self.logger.info(f"[{self.get_name()}] Starting virtual sequence")
+        self.logger.info("=" * 60)
 
         # Start sequences on different sequencers in parallel
-        if self.master_seqr and self.slave_seqr:
-            print("[VirtualSequence] Starting parallel sequences")
+        if master_seqr and slave_seqr:
+            self.logger.info("[VirtualSequence] Starting parallel sequences")
 
             # Start master sequence
-            master_seq = ChannelSequence.create("master_seq")
+            master_seq = ChannelSequence(name="master_seq")
             master_seq.channel = 0
             master_seq.num_items = 3
-            master_task = cocotb.start_soon(master_seq.start(self.master_seqr))
+            master_task = cocotb.start_soon(master_seq.start(master_seqr))
 
             # Start slave sequence
-            slave_seq = ChannelSequence.create("slave_seq")
+            slave_seq = ChannelSequence(name="slave_seq")
             slave_seq.channel = 1
             slave_seq.num_items = 3
-            slave_task = cocotb.start_soon(slave_seq.start(self.slave_seqr))
+            slave_task = cocotb.start_soon(slave_seq.start(slave_seqr))
 
             # Wait for both to complete
             await master_task
             await slave_task
 
-            print("[VirtualSequence] Parallel sequences completed")
+            self.logger.info("[VirtualSequence] Parallel sequences completed")
 
         # Sequential execution example
-        print("=" * 60)
-        print("[VirtualSequence] Starting sequential sequences")
+        self.logger.info("=" * 60)
+        self.logger.info("[VirtualSequence] Starting sequential sequences")
 
-        if self.master_seqr:
-            seq1 = ChannelSequence.create("seq1")
+        if master_seqr:
+            seq1 = ChannelSequence(name="seq1")
             seq1.channel = 0
             seq1.num_items = 2
-            await seq1.start(self.master_seqr)
+            await seq1.start(master_seqr)
 
-        if self.slave_seqr:
-            seq2 = ChannelSequence.create("seq2")
+        if slave_seqr:
+            seq2 = ChannelSequence(name="seq2")
             seq2.channel = 1
             seq2.num_items = 2
-            await seq2.start(self.slave_seqr)
+            await seq2.start(slave_seqr)
 
-        print("[VirtualSequence] Sequential sequences completed")
-        print("=" * 60)
+        self.logger.info("[VirtualSequence] Sequential sequences completed")
+        self.logger.info("=" * 60)
 
 
 class VirtualSequencer(uvm_sequencer):
@@ -130,13 +138,6 @@ class VirtualSequencer(uvm_sequencer):
         # References to actual sequencers (set in connect_phase)
         self.master_seqr = None
         self.slave_seqr = None
-
-    def connect_phase(self):
-        """Connect phase - get references to actual sequencers."""
-        self.logger.info(f"[{self.get_name()}] Connecting virtual sequencer")
-        # In real implementation, get sequencer references from environment
-        # self.master_seqr = self.env.master_agent.seqr
-        # self.slave_seqr = self.env.slave_agent.seqr
 
 
 class VirtualDriver(uvm_driver):
@@ -224,12 +225,11 @@ class VirtualSequenceTest(uvm_test):
         self.logger.info("Running virtual sequence test")
 
         try:
-            # Create and start virtual sequence
-            virtual_seq = VirtualSequence.create("virtual_seq")
-            virtual_seq.master_seqr = self.env.virtual_seqr.master_seqr
-            virtual_seq.slave_seqr = self.env.virtual_seqr.slave_seqr
-
-            # Start the virtual sequence
+            # Create and start virtual sequence.
+            # No need to pass sequencer handles by hand: the sequence gets
+            # them from the virtual sequencer it is started on (self.sequencer).
+            # virtual_seq = VirtualSequence.create("virtual_seq")
+            virtual_seq = VirtualSequence(name="virtual_seq")
             await virtual_seq.start(self.env.virtual_seqr)
 
             # Give some time for sequences to complete

@@ -2,7 +2,7 @@
 Module 5 Example 5.2: UVM Coverage Models
 Demonstrates functional coverage implementation.
 """
-
+import pyuvm
 from pyuvm import *
 import cocotb
 from cocotb.triggers import Timer
@@ -160,9 +160,7 @@ class CoverageEnv(uvm_env):
         self.logger.info("Connecting CoverageEnv")
         self.monitor.ap.connect(self.coverage.analysis_export)
 
-
-# Note: @uvm_test() decorator removed to avoid import-time TypeError
-# Using cocotb test wrapper instead for compatibility with cocotb test discovery
+@pyuvm.test()
 class CoverageTest(uvm_test):
     """Test demonstrating coverage model."""
     
@@ -182,21 +180,3 @@ class CoverageTest(uvm_test):
         self.logger.info("=" * 60)
         self.logger.info("Coverage test completed")
         self.logger.info("=" * 60)
-
-
-# Cocotb test function to run the pyuvm test
-@cocotb.test()
-async def test_coverage(dut):
-    """Cocotb test wrapper for pyuvm test."""
-    # Register the test class with uvm_root so run_test can find it
-    if not hasattr(uvm_root(), 'm_uvm_test_classes'):
-        uvm_root().m_uvm_test_classes = {}
-    uvm_root().m_uvm_test_classes["CoverageTest"] = CoverageTest
-    # Use uvm_root to run the test properly (executes all phases in hierarchy)
-    await uvm_root().run_test("CoverageTest")
-
-
-if __name__ == "__main__":
-    print("This is a pyuvm coverage example.")
-    print("To run with cocotb, use the Makefile in the test directory.")
-

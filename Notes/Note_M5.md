@@ -339,3 +339,11 @@ def write(self, txn):
 
 **Qué le dice este plan al equipo cuando llega a 100%:** que se probaron ventanas en el borde (incluida la que puede dar conteo 0), que el off-by-one en el límite ventana/edge fue ejercitado para ambos canales, que `start` y `reset` fueron enviados a propósito durante `busy` para confirmar que se ignoran, y que los dos canales lentos se corrieron con relaciones de frecuencia distintas entre sí — no solo que "se corrieron varios tests y no hubo error", que es la diferencia central entre coverage-driven verification y simplemente correr tests hasta cansarse.
 
+## Object Configuration
+
+Crear configuración compleja de forma centralizada y jerárquica, sin tener que pasar referencias a mano entre componentes. El patrón es:
+- Un **objeto de configuración** (`ConfigObject`) que contiene todos los parámetros relevantes para un componente (por ejemplo, un agente).  
+- Un **componente configurable** (`ConfigurableComponent`) que declara un atributo `config` y lo inicializa en `None`.  
+- Un **env** que crea los objetos de configuración y los asigna a los componentes en `connect_phase()`.  
+- Un **test** que crea el env y arranca la simulación, sin tener que pasar referencias a mano entre los componentes.    
+

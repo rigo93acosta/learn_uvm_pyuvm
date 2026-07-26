@@ -31,9 +31,9 @@ async def test_signal_access_basic(dut):
     await Timer(10, units="ns")
     
     # Read initial values
-    cocotb.log.info(f"Initial q value: {dut.q.value.to_unsigned()}")
-    cocotb.log.info(f"Initial q value (integer): {dut.q.value.to_unsigned()}")
-    cocotb.log.info(f"Initial q value (binary): {dut.q.value}")
+    cocotb.log.info(f"Initial q value: {dut.q.value.integer}")
+    cocotb.log.info(f"Initial q value (integer): {dut.q.value.integer}")
+    cocotb.log.info(f"Initial q value (binary): {dut.q.value.integer}")
     cocotb.log.info(f"Width of q signal: {len(dut.q)} bits") # Accessing signal width
     
     # Deassert reset
@@ -41,17 +41,17 @@ async def test_signal_access_basic(dut):
     await Timer(10, units="ns")
     
     # Read after reset
-    cocotb.log.info(f"After reset q value: {dut.q.value.to_unsigned()}")
+    cocotb.log.info(f"After reset q value: {dut.q.value.integer}")
     
     # Enable and write data
     dut.enable.value = 1
     dut.d.value = 0xAB
-    await dut.clk.rising_edge
+    await RisingEdge(dut.clk)
     await Timer(1, units="ns")
     
     # Read output
-    cocotb.log.info(f"After write q value: 0x{dut.q.value.to_unsigned():02X}")
-    assert dut.q.value.to_unsigned() == 0xAB, f"Expected 0xAB, got 0x{dut.q.value.to_unsigned():02X}"
+    cocotb.log.info(f"After write q value: 0x{dut.q.value.integer:02X}")
+    assert dut.q.value.integer == 0xAB, f"Expected 0xAB, got 0x{dut.q.value.integer:02X}"
 
 
 @cocotb.test()
@@ -75,15 +75,15 @@ async def test_signal_types(dut):
     
     # Test different value assignments
     dut.d.value = 0x12  # Integer
-    await dut.clk.rising_edge
+    await RisingEdge(dut.clk)
     await Timer(1, units="ns")
-    cocotb.log.info(f"Assigned 0x12, got: 0x{dut.q.value.to_unsigned():02X}")
+    cocotb.log.info(f"Assigned 0x12, got: 0x{dut.q.value.integer:02X}")
     
     dut.d.value = 0b10101010  # Binary literal
-    await dut.clk.rising_edge
+    await RisingEdge(dut.clk)
     await Timer(1, units="ns")
-    cocotb.log.info(f"Assigned 0b10101010, got: 0x{dut.q.value.to_unsigned():02X}")
-    assert dut.q.value.to_unsigned() == 0xAA
+    cocotb.log.info(f"Assigned 0b10101010, got: 0x{dut.q.value.binstr}")
+    assert dut.q.value.integer == 0xAA
 
 
 @cocotb.test()
@@ -104,20 +104,20 @@ async def test_signal_properties(dut):
     
     # Test value representations
     dut.d.value = 0x5A
-    await dut.clk.rising_edge
+    await RisingEdge(dut.clk)
     await Timer(1, units="ns")
     
-    cocotb.log.info(f"Integer: {dut.q.value.to_unsigned()}")
+    cocotb.log.info(f"Integer: {dut.q.value.integer}")
     cocotb.log.info(f"Binary: {dut.q.value}")
-    cocotb.log.info(f"Hex: {hex(dut.q.value.to_unsigned())}")
-    cocotb.log.info(f"String: {str(dut.q.value.to_unsigned())}")
+    cocotb.log.info(f"Hex: {hex(dut.q.value.integer)}")
+    cocotb.log.info(f"String: {str(dut.q.value.integer)}")
 
 @cocotb.test()
 async def test_bus_integrity_and_width(dut):
     """ Verificación de anchos de señal y límites del bus."""
     
     # Verificación de anchos definidos en el Verilog 
-    width_d = len(dut.d)
+    width_d = len(dut.d)    
     width_q = len(dut.q)
     
     cocotb.log.info(f"Ancho detectado - d: {width_d} bits, q: {width_q} bits")

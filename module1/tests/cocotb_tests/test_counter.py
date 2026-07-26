@@ -12,6 +12,7 @@ Demonstrates:
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import Timer, RisingEdge, FallingEdge
+from cocotb.utils import get_sim_time
 
 
 async def generate_clock(dut, period_ns=10):
@@ -161,4 +162,73 @@ async def test_counter_overflow(dut):
     final_count = int(dut.count.value)
     assert final_count in [0, MAX_COUNT], \
         f"Counter should wrap to 0 or saturate at {MAX_COUNT}, got {final_count}"
+
+
+@cocotb.test()
+async def test_counter_clock_period(dut):
+    """
+    Test clock timing constraint.
+
+    Verifies the generated clock actually respects the requested period.
+    """
+    period_ns = 10
+    cocotb.start_soon(generate_clock(dut, period_ns=period_ns))
+
+    await RisingEdge(dut.clk)
+    t1 = get_sim_time(units="ns")
+    await RisingEdge(dut.clk)
+    t2 = get_sim_time(units="ns")
+
+    measured_period = t2 - t1
+    assert measured_period == period_ns, \
+        f"Expected clock period {period_ns}ns, measured {measured_period}ns"
+
+
+@cocotb.test()
+async def test_counter_no_glitch(dut):
+    """
+    Test counter stability timing constraint.
+
+    Verifies count only changes on a RisingEdge, never mid-cycle.
+    """
+    cocotb.start_soon(generate_clock(dut, period_ns=10))
+    await reset_dut(dut)
+    dut.enable.value = 1
+
+    await RisingEdge(dut.clk)
+    await Timer(1, units="ns")  # Wait for combinational logic
+    count_after_edge = int(dut.count.value)
+
+    # Sample mid-cycle: value must not have changed
+    await Timer(4, units="ns")
+    count_mid_cycle = int(dut.count.value)
+    assert count_mid_cycle == count_after_edge, \
+        f"Glitch detected: count changed from {count_after_edge} to " \
+        f"{count_mid_cycle} without a RisingEdge in between"
+
+
+@cocotb.test()
+async def test_counter_reset_duration(dut):
+    """
+    Test reset timing constraint.
+
+    Verifies rst_n stays asserted (low) for at least the required duration.
+    """
+    cocotb.start_soon(generate_clock(dut, period_ns=10))
+
+    dut.rst_n.value = 0
+    dut.enable.value = 0
+    t_reset_start = get_sim_time(units="ns")
+
+    min_reset_ns = 20  # Minimum reset duration required by the design/spec
+    await Timer(min_reset_ns, units="ns")
+
+    assert dut.rst_n.value == 0, \
+        f"rst_n was released before the required {min_reset_ns}ns minimum"
+
+    elapsed = get_sim_time(units="ns") - t_reset_start
+    assert elapsed >= min_reset_ns, \
+        f"Reset held for only {elapsed}ns, {min_reset_ns}ns required"
+
+    dut.rst_n.value = 1
 

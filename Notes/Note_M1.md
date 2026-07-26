@@ -70,6 +70,7 @@ Este archivo implementa un testbench basado en `pyuvm` para verificar una compue
 - **Transacciones (`AndGateTransaction`)**:
   - Define los campos `a`, `b` y `expected_y` para representar entradas y salidas esperadas.
   - Incluye un método `__str__` para mostrar información de la transacción.
+  - `set_value_txn()` actúa como método factory para construir la transacción a partir de una lista de valores.
 - **Secuencias (`AndGateSequence`)**:
   - Genera vectores de prueba para la compuerta AND.
   - Los vectores incluyen combinaciones de entradas y sus salidas esperadas:
@@ -77,7 +78,48 @@ Este archivo implementa un testbench basado en `pyuvm` para verificar una compue
     - `(0, 1, 0)`
     - `(1, 0, 0)`
     - `(1, 1, 1)`
-- **Estructura UVM**:
-  - Sigue las fases y patrones de diseño de UVM para organizar el testbench.
-  - Utiliza métodos asíncronos para generar y manejar transacciones.
+  - Usa `start_item()` / `finish_item()` dentro de `body()` para enviar cada transacción al sequencer.
+- **Driver (`AndGateDriver`)**:
+  - Extiende `uvm_driver`. En `build_phase()` obtiene el handle del DUT vía `cocotb.top`.
+  - En `run_phase()` hace `await self.seq_item_port.get_next_item()` en un loop, conduce las señales `a`/`b` del DUT, espera propagación con `await Timer(10, unit="ns")` y notifica finalización con `self.seq_item_port.item_done()`.
+- **Monitor (`AndGateMonitor`)**:
+  - Extiende `uvm_monitor`. En `build_phase()` crea un `uvm_analysis_port` (`self.ap`).
+  - En `run_phase()` muestrea la salida `y` del DUT y publica una transacción observada con `self.ap.write(observed_txn)`.
+- **Agente (`AndGateAgent`)**:
+  - Extiende `uvm_agent`. En `build_phase()` crea el `driver`, el `monitor` y el `sequencer` (`uvm_sequencer`).
+  - En `connect_phase()` conecta `driver.seq_item_port` con `seqr.seq_item_export`.
+- **Entorno (`AndGateEnv`)**:
+  - Extiende `uvm_env`. Instancia el `AndGateAgent` en `build_phase()`.
+- **Test (`AndGateTest`)**, decorado con `@pyuvm.test()`:
+  - Extiende `uvm_test`. Construye el `AndGateEnv` en `build_phase()`.
+  - En `run_phase()` levanta una objeción (`self.raise_objection()`), crea y arranca la secuencia (`AndGateSequence.create("seq")` + `await seq.start(...)`), espera con `Timer(100, unit="ns")` y baja la objeción (`self.drop_objection()`).
+  - `check_phase()` registra un mensaje de verificación de resultados vía `self.logger`.
+- **Fases UVM utilizadas**: `build_phase()`, `connect_phase()`, `run_phase()`, `check_phase()`.
+- **Objeciones**: `raise_objection()` / `drop_objection()` controlan cuánto dura la ejecución de la prueba antes de terminar.
+- **Nota**: Es un ejemplo estructural que muestra los patrones UVM; el driver/monitor no interactúan aún con señales reales de forma completa (esa integración llega en módulos posteriores).
+
+## Ejercicios propuestos (pendientes de resolver)
+
+Según `docs/MODULE1.md` / `docs/MODULE1_es.md`, quedan los siguientes ejercicios del Módulo 1 **sin solución todavía**:
+
+1. **Diseño de Clases** — Crear una clase de transacción base, derivar tipos específicos e implementar métodos de comparación.
+   - Ubicación: extender `module1/examples/python_basics/transaction.py`.
+   - Pista: agregar una clase `WriteReadTransaction` que combine lectura y escritura.
+
+2. **Patrones Async** — Crear múltiples corrutinas paralelas, manejar timeout y excepciones en código asíncrono.
+   - Ubicación: extender `module1/examples/async_await/async_example.py`.
+   - Pista: crear un monitor que expire si no llegan datos.
+
+3. **Estructura de Testbench** — Diseñar un testbench simple con reloj, reset y estímulo básico.
+   - Ubicación: crear una nueva prueba en `module1/tests/cocotb_tests/`.
+   - Pista: probar el contador con diferentes patrones de enable.
+
+4. **Aserciones** — Agregar aserciones a un testbench existente y entender sus mensajes. (Realizado)
+   - Ubicación: agregar a las pruebas existentes en `module1/tests/cocotb_tests/`.
+   - Pista: agregar aserciones para restricciones de temporización.
+
+5. **Logging** — Implementar logging en un testbench con distintos niveles y formato de mensajes.
+   - Ubicación: extender `module1/examples/error_handling/error_handling_example.py`.
+   - Pista: crear un formateador de log personalizado para mensajes de verificación.
+
 

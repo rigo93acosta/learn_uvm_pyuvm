@@ -9,9 +9,45 @@ Demonstrates:
 - Basic checking
 """
 
+from collections import Counter
+from typing import Any, Dict
+
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import Timer, RisingEdge
+
+
+class CoverageCollector:
+    """
+    Coverage data collector.
+
+    Same pattern as module1/examples/data_structures/data_structures_example.py,
+    reused here directly against the AND gate DUT instead of random values.
+    """
+
+    def __init__(self) -> None:
+        self.covered_bins: Dict[str, set] = {}
+        self.hit_counts: Dict[str, Counter] = {}
+        self.total_possible: Dict[str, int] = {}
+
+    def define_bin(self, bin_name: str, total_possible_values: int) -> None:
+        self.covered_bins.setdefault(bin_name, set())
+        self.hit_counts.setdefault(bin_name, Counter())
+        self.total_possible[bin_name] = total_possible_values
+
+    def add_coverage(self, bin_name: str, value: Any) -> None:
+        self.covered_bins.setdefault(bin_name, set())
+        self.hit_counts.setdefault(bin_name, Counter())
+        self.covered_bins[bin_name].add(value)
+        self.hit_counts[bin_name][value] += 1
+
+    def get_coverage(self, bin_name: str) -> float:
+        if bin_name not in self.covered_bins:
+            return 0.0
+        total = self.total_possible[bin_name]
+        if total == 0:
+            return 0.0
+        return (len(self.covered_bins[bin_name]) / total) * 100.0
 
 
 @cocotb.test()
@@ -57,24 +93,34 @@ async def test_and_gate_basic(dut):
 async def test_and_gate_truth_table(dut):
     """
     AND gate truth table test.
-    
-    Tests all combinations systematically.
+
+    Tests all combinations systematically and tracks functional coverage
+    of the input space to guarantee the truth table is fully exercised.
     """
+    coverage = CoverageCollector()
+    coverage.define_bin("input_combo", total_possible_values=4)  # (a,b): 00,01,10,11
+
     test_cases = [
         (0, 0, 0),
         (0, 1, 0),
         (1, 0, 0),
         (1, 1, 1),
     ]
-    
+
     for a_val, b_val, expected_y in test_cases:
         dut.a.value = a_val
         dut.b.value = b_val
         await Timer(10, units="ns")
-        
+
         actual_y = int(dut.y.value)
         assert actual_y == expected_y, \
             f"Input (a={a_val}, b={b_val}): Expected {expected_y}, got {actual_y}"
+
+        coverage.add_coverage("input_combo", (a_val, b_val))
+
+    cov_pct = coverage.get_coverage("input_combo")
+    dut._log.info(f"Truth table coverage: {cov_pct:.1f}%")
+    assert cov_pct == 100.0, f"Truth table not fully covered: {cov_pct:.1f}%"
 
 
 @cocotb.test()

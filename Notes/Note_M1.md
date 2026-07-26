@@ -117,9 +117,37 @@ Según `docs/MODULE1.md` / `docs/MODULE1_es.md`, quedan los siguientes ejercicio
 4. **Aserciones** — Agregar aserciones a un testbench existente y entender sus mensajes. (Realizado)
    - Ubicación: agregar a las pruebas existentes en `module1/tests/cocotb_tests/`.
    - Pista: agregar aserciones para restricciones de temporización.
+   - **Solución aplicada** en `module1/tests/cocotb_tests/test_counter.py` (3 pruebas nuevas):
+   - Resultado: las 3 pruebas fueron ejecutadas por el usuario y pasaron correctamente.
+      - `test_counter_clock_period`: mide el tiempo entre dos `RisingEdge(dut.clk)` consecutivos con `cocotb.utils.get_sim_time()` y verifica que coincide con el período esperado del reloj generado.
+      - `test_counter_no_glitch`: muestrea `count` justo después de un flanco y de nuevo a mitad de ciclo, verificando que no cambió sin pasar por otro `RisingEdge` (detección de glitch).
+      - `test_counter_reset_duration`: mantiene `rst_n` en bajo y verifica, con `get_sim_time()`, que se sostiene al menos el tiempo mínimo requerido antes de liberarse.
 
 5. **Logging** — Implementar logging en un testbench con distintos niveles y formato de mensajes.
    - Ubicación: extender `module1/examples/error_handling/error_handling_example.py`.
    - Pista: crear un formateador de log personalizado para mensajes de verificación.
 
 
+## Integración de cobertura funcional
+
+### Qué se implementó
+
+Se agregó una versión de `CoverageCollector` directamente dentro de `module1/tests/cocotb_tests/test_and_gate.py` y se integró en `test_and_gate_truth_table`:
+
+- Se define un bin `input_combo` con `total_possible_values=4` (las 4 combinaciones de la tabla de verdad: `(0,0)`, `(0,1)`, `(1,0)`, `(1,1)`).
+- En cada iteración del test, además del `assert` de valor esperado, se llama `coverage.add_coverage("input_combo", (a_val, b_val))`.
+- Al final del test se calcula `coverage.get_coverage("input_combo")` y se agrega `assert cov_pct == 100.0`.
+
+**Por qué importa esta última aserción**: antes, si alguien borraba un caso de la lista `test_cases`, los demás casos seguían pasando y el test no lo detectaba. Con la aserción de cobertura, borrar un caso hace que `cov_pct` caiga por debajo de 100% y el test falla explícitamente — se verifica que el *espacio de estímulo* esté completo, no solo que los valores probados sean correctos. Esto es exactamente el propósito de un `covergroup`/`coverpoint` en SystemVerilog o de `cocotb-coverage` (`CoverPoint`) en el mundo cocotb/pyuvm: aquí se practica el concepto a mano antes de usar la herramienta real.
+
+### Extensión implementada en `test_counter.py`
+
+Se aplicó el mismo patrón (clase `CoverageCollector` autocontenida, igual que en `test_and_gate.py`) a dos bins del contador:
+
+- **`overflow_event`** (en `test_counter_overflow`, `total_possible_values=1`): registra el punto de cobertura solo cuando se observa la transición real `count == 0xFF → count == 0x00`.
+  - **Bug encontrado al implementarlo**: la versión anterior del test solo contaba 254 ciclos y aceptaba `final_count in [0, MAX_COUNT]` como válido — es decir, **nunca ejercitaba el wrap real**, se conformaba con llegar a 255. Se corrigió el loop a 256 ciclos completos desde 0 y se dejó un único resultado válido: `final_count == 0`. Ejemplo concreto de cómo instrumentar cobertura expone huecos que un `assert` de valor simple no detecta.
+- **`reset_during_count`** (nuevo test `test_counter_reset_mid_count`, `total_possible_values=1`): ninguno de los tests existentes reseteaba con el contador en un valor distinto de cero (todos reseteaban al inicio, cuando `count` ya era 0). Se agregó un test que avanza 5 ciclos, confirma `count != 0`, registra el punto de cobertura, y luego resetea verificando que vuelve a 0.
+
+### Extensión pendiente (no implementada todavía)
+
+- `enable_transition`: pares `(enable_anterior, enable_actual)` → `(0,0)`, `(0,1)`, `(1,0)`, `(1,1)`, para asegurar que se probaron ambos sentidos de habilitar/deshabilitar (no solo "encender y dejar encendido").

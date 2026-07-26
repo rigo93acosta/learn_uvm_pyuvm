@@ -19,7 +19,7 @@ async def test_signal_access_basic(dut):
     - Different signal types
     """
     # Start clock
-    clock = Clock(dut.clk, 10, unit="ns")
+    clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
     
     # Initialize signals
@@ -28,7 +28,7 @@ async def test_signal_access_basic(dut):
     dut.d.value = 0
     
     # Wait for initial values
-    await Timer(10, unit="ns")
+    await Timer(10, units="ns")
     
     # Read initial values
     cocotb.log.info(f"Initial q value: {dut.q.value.to_unsigned()}")
@@ -38,7 +38,7 @@ async def test_signal_access_basic(dut):
     
     # Deassert reset
     dut.rst_n.value = 1
-    await Timer(10, unit="ns")
+    await Timer(10, units="ns")
     
     # Read after reset
     cocotb.log.info(f"After reset q value: {dut.q.value.to_unsigned()}")
@@ -47,7 +47,7 @@ async def test_signal_access_basic(dut):
     dut.enable.value = 1
     dut.d.value = 0xAB
     await dut.clk.rising_edge
-    await Timer(1, unit="ns")
+    await Timer(1, units="ns")
     
     # Read output
     cocotb.log.info(f"After write q value: 0x{dut.q.value.to_unsigned():02X}")
@@ -59,7 +59,7 @@ async def test_signal_types(dut):
     """
     Demonstrates different signal types.
     """
-    clock = Clock(dut.clk, 10, unit="ns")
+    clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
     
     dut.rst_n.value = 1
@@ -76,12 +76,12 @@ async def test_signal_types(dut):
     # Test different value assignments
     dut.d.value = 0x12  # Integer
     await dut.clk.rising_edge
-    await Timer(1, unit="ns")
+    await Timer(1, units="ns")
     cocotb.log.info(f"Assigned 0x12, got: 0x{dut.q.value.to_unsigned():02X}")
     
     dut.d.value = 0b10101010  # Binary literal
     await dut.clk.rising_edge
-    await Timer(1, unit="ns")
+    await Timer(1, units="ns")
     cocotb.log.info(f"Assigned 0b10101010, got: 0x{dut.q.value.to_unsigned():02X}")
     assert dut.q.value.to_unsigned() == 0xAA
 
@@ -91,7 +91,7 @@ async def test_signal_properties(dut):
     """
     Demonstrates signal properties and methods.
     """
-    clock = Clock(dut.clk, 10, unit="ns")
+    clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
     
     dut.rst_n.value = 1
@@ -105,7 +105,7 @@ async def test_signal_properties(dut):
     # Test value representations
     dut.d.value = 0x5A
     await dut.clk.rising_edge
-    await Timer(1, unit="ns")
+    await Timer(1, units="ns")
     
     cocotb.log.info(f"Integer: {dut.q.value.to_unsigned()}")
     cocotb.log.info(f"Binary: {dut.q.value}")
@@ -129,7 +129,7 @@ async def test_bus_integrity_and_width(dut):
         dut.d.value = 256
     except (OverflowError, ValueError):
         cocotb.log.info("[ERROR] Cocotb evita un desbordamiento en el bus 'd'")
-    await Timer(1, unit="ns")
+    await Timer(1, units="ns")
     
     # Comprobar acceso por ruta jerárquica
     cocotb.log.info(f"Ruta completa de la señal q: {dut.q._path}")

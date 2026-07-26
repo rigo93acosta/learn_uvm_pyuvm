@@ -1,3 +1,32 @@
+# Section: Signal Access
+
+El archivo `signal_access_example.py` cubre el acceso básico a las señales del DUT, algo previo a todo lo demás.
+
+- **`dut.signal_name`**: Forma de acceder a cualquier señal declarada en el módulo Verilog desde Python.
+- **`.value`**: Propiedad para leer o escribir el valor de una señal.
+- **`.value.integer`** / **`.value.to_unsigned()`**: Representación entera del valor.
+- **`.value.binstr`**: Representación en string binario.
+- **`BinaryValue`**: Permite construir valores a partir de strings binarios.
+- **`len(dut.signal)`**: Devuelve el ancho (en bits) de la señal.
+- **`dut.signal._path`**: Ruta jerárquica completa de la señal dentro del diseño.
+
+## Tests
+
+- `test_signal_access_basic`: Lectura inicial, tras reset y tras un write, mostrando el valor en entero y binario.
+- `test_signal_types`: Verifica los distintos tipos/representaciones de valor de una señal.
+- `test_signal_properties`: Revisa propiedades como ancho y nombre de señal.
+- `test_bus_integrity_and_width`: Este es el mismo test que documenté como "Ejercicio 4" más abajo — vive en este archivo, no en `triggers_example.py`. Verifica el ancho del bus `d` (8 bits) y comprueba que cocotb evita un desbordamiento (`OverflowError`/`ValueError`) al intentar escribir un valor fuera de rango (256 en un bus de 8 bits).
+
+# Section: Clock Generation
+
+El archivo `clock_generation_example.py` es donde realmente viven los "Ejercicios 1, 2 y 3" que documenté más abajo (`test_multiple_clock_domains`, `test_register_gating`, `test_clock_synchronization`). Además contiene otros patrones base de generación de reloj:
+
+- `test_clock_class`: Uso básico de la clase `Clock(dut.clk, period, unit)` junto con `cocotb.start_soon(clock.start())` para correrlo en background.
+- `test_multiple_clocks`: Introducción a manejar más de un dominio de reloj (en el ejemplo, ambos relojes controlan la misma señal `dut.clk` solo a modo demostrativo).
+- `test_clock_gating`: Patrón de gating a nivel de coroutine — una bandera `clock_enable` controla si se "reacciona" al flanco o se ignora, distinto del gating físico/lógico del DUT que se explica en la sección de Ejercicios.
+- `test_clock_stopping`: cocotb no tiene un método directo para matar un `Clock`; el patrón recomendado es usar un generador de reloj manual con una bandera de corte (`stop_clock`), ya que el objeto `Clock` normal corre hasta que el test termina.
+- `test_clock_division`: Implementa un "reloj dividido" contando flancos del reloj base y alternando una señal cada `divide_by` ciclos.
+
 # Section: Triggers
 
 En el mundo de la simulación con **cocotb**, el trigger `ReadOnly` es fundamental para evitar lo que en hardware llamamos "condiciones de carrera" (race conditions) entre el testbench y el simulador.
@@ -40,6 +69,31 @@ Podrías leer el valor "viejo" de la señal antes de que el simulador termine de
 - **Para leer y verificar (Monitor/Sample):** Usa `ReadOnly` para asegurarte de que no estás leyendo basura o valores transitorios.
 
 > **Dato importante:** Al igual que con los otros triggers, en versiones muy recientes de cocotb, se prefiere a veces usar `await NextTimeStep()` o simplemente confiar en el modelo de programación asíncrona, pero `ReadOnly` sigue siendo el estándar de oro para muestreo seguro de señales.
+
+## API moderna vs. obsoleta
+
+En `triggers_example.py` los tests usan y comentan explícitamente el reemplazo de la API clásica de triggers de edge por la nueva basada en el propio handle de la señal:
+
+```python
+# await RisingEdge(dut.clk)  # Obsoleto, usar value_change en su lugar
+await dut.clk.rising_edge
+
+# await FallingEdge(dut.clk)  # Obsoleto
+await dut.clk.falling_edge
+
+# await Edge(dut.clk)  # Obsoleto
+await dut.clk.value_change
+```
+
+Es decir: `RisingEdge(signal)`, `FallingEdge(signal)` y `Edge(signal)` como funciones sueltas están deprecados a favor de las propiedades `signal.rising_edge`, `signal.falling_edge` y `signal.value_change`.
+
+## Otros triggers cubiertos en el ejemplo
+
+- **`Timer(time, unit)`** (`test_timer_trigger`): Espera un tiempo fijo de simulación, se puede encadenar en un loop para esperar múltiples periodos.
+- **`Combine(*triggers)`** (`test_combine_trigger`): Espera a que **todos** los triggers indicados ocurran (en el ejemplo, un flanco de reloj Y un Timer).
+- **`First(*triggers)`** (`test_first_trigger`): Espera a que ocurra el **primero** de varios triggers; útil junto con manejo de excepciones (`SimTimeoutError`) para saber cuál ganó la carrera.
+- **Timeout handling** (`test_timeout_handling`): Patrón para capturar `SimTimeoutError` cuando una operación tarda más de lo esperado.
+- **Triggers en paralelo** (`test_parallel_triggers`): Dos coroutines corriendo simultáneamente con `cocotb.start_soon()`, una monitoreando flancos de reloj y otra monitoreando un `Timer`, demostrando que cocotb puede correr múltiples "hilos" lógicos de verificación al mismo tiempo.
 
 # Section: Reset
 
@@ -140,6 +194,20 @@ En este modulo de test de un registro de desplazamiento simple:
 - Operacion del shift register
 - Secuencia de datos
 - Verificacion de la salida serial
+
+## Simple FSM
+
+`test_simple_fsm.py` verifica una máquina de estados de 4 estados (`IDLE`, `START`, `WORK`, `DONE`) definida como `IntEnum` (`FsmState`), sobre el DUT `module2/dut/state_machines/simple_fsm.v`.
+
+- `test_fsm_reset`: Verifica que tras el reset la FSM quede en `IDLE`.
+- `test_fsm_idle_and_outputs`: Confirma que sin estímulo (`start=0`) la FSM se queda en `IDLE` y `done` permanece en 0.
+- `test_fsm_sequence_logic`: Recorre la secuencia completa `IDLE -> START -> WORK -> DONE -> IDLE`, verificando estado y señal `done` en cada paso.
+- `test_fsm_reset_recovery`: Aplica un reset inesperado mientras la FSM está en `WORK` y comprueba que vuelve a `IDLE` con `done` en 0 (reset asíncrono durante operación).
+- `test_fsm_monitor`: No hace asserts, solo dispara la FSM varias veces con un **Monitor** (`FSMMonitor`) corriendo en paralelo que loguea el estado y `done` en cada flanco de reloj.
+
+### Patrón Monitor
+
+`FSMMonitor` es una clase separada del test que corre como una coroutine independiente (`cocotb.start_soon(monitor.start_monitoring())`). Su único trabajo es observar señales del DUT y reportar (loguear), sin hacer `assert` — la verificación queda a cargo del test. Es la primera aparición de este patrón en el módulo, previo al Scoreboard visto en Common Patterns: el Monitor observa y reporta, el test decide qué verificar.
 
 # Exercises
 
@@ -293,7 +361,17 @@ async def test_bus_integrity_and_width(dut):
     cocotb.log.info(f"Ruta completa de la señal q: {dut.q._path}")
 ```
 
-> Falta el resto de ejercicios
+> **Nota de ubicación:** Los ejercicios 1-3 (arriba) terminaron implementados en `clock_generation_example.py`, no en `triggers_example.py`. El ejercicio 4 (Integridad y Propiedades del Bus) vive en `signal_access_example.py` como `test_bus_integrity_and_width` (ver Section: Signal Access).
+
+## 5. Debugging
+
+Pendiente. El `Makefile` de `module2/tests/cocotb_tests/` soporta generación de waveform (VCD/FST vía variable `WAVES`), pero todavía no hay un ejercicio de código escrito que:
+
+- Agregue logging estructurado más allá de `cocotb.log.info` (niveles, `cocotb.log.set_level(...)`).
+- Genere y revise un VCD/FST de forma explícita en un test.
+- Use el debugger de Python (`pdb`) o breakpoints dentro de una coroutine de cocotb.
+
+> Falta el resto de ejercicios (Debugging, Ejercicio 5)
 
 ```markdown
 3. **Trigger Patterns**

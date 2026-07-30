@@ -195,3 +195,49 @@ Tener claro Secuencias y Secuencias Items:
 
 > En pyuvm, tanto los puertos comunes como los de "pull" se unificaron bajo una única clase base: uvm_seq_item_port.
 
+### Test UVM Adder example code (`test_simple_uvm.py`)
+
+DUT: `module3/dut/simple_blocks/adder.v` (o `.vhd`), un sumador combinacional de 8 bits con acarreo, sincronizado a un reloj (`clk`) y con reset activo bajo (`rst_n`).
+
+Jerarquía construida en `build_phase`:
+
+```
+AdderTest
+  └─ env (AdderEnv)
+       ├─ agent (AdderAgent)
+       │    ├─ driver    (AdderDriver)
+       │    ├─ in_monitor  (AdderInputMonitor)
+       │    ├─ out_monitor (AdderOutputMonitor)
+       │    └─ seqr      (uvm_sequencer)
+       └─ scoreboard (AdderScoreboard, uvm_subscriber)
+```
+
+Componentes:
+
+- **`AdderTransaction`** (`uvm_sequence_item`): guarda `a`, `b`, `expected_sum`, `expected_carry`. La misma clase de transacción se reutiliza tanto para lo que la secuencia pide como para lo que cada monitor observa.
+- **`AdderSequence`** (`uvm_sequence`): genera 5 vectores de prueba fijos (incluye 2 casos de overflow) y los envía uno a uno con `start_item`/`finish_item`.
+- **`AdderDriver`** (`uvm_driver`): el único componente que escribe en el DUT. En `run_phase` hace `get_next_item()`, espera `FallingEdge(clk)` para evitar carreras con el DUT, escribe `a`/`b`, espera `RisingEdge(clk)` y llama `item_done()`.
+- **`AdderInputMonitor`** / **`AdderOutputMonitor`** (`uvm_monitor`): **pasivos**, no escriben nada. Cada uno espera `RisingEdge(clk)` + `ReadOnly()` (para leer el valor ya asentado al final del delta-cycle), valida que la señal no sea `X`/`Z` (`is_resolvable`) y publica una `AdderTransaction` por su `uvm_analysis_port`. El input_monitor lee `a`/`b` (lo que realmente llegó al DUT); el output_monitor lee `sum`/`carry`.
+- **`AdderScoreboard`** (`uvm_subscriber`): tiene dos `uvm_analysis_export` (`input_export`, `output_export`), cada uno con su `write` redirigido a un método distinto:
+  - `write_input`: al llegar una transacción de entrada, calcula de inmediato `a + b` y guarda el resultado esperado en un `deque` (predictor).
+  - `write_out`: al llegar la transacción de salida, saca lo esperado del `deque` y lo compara contra `expected_sum`/`expected_carry` reales del DUT.
+- **`AdderAgent`** (`uvm_agent`): crea driver, ambos monitores y el sequencer; en `connect_phase` conecta `driver.seq_item_port` con `seqr.seq_item_export`.
+- **`AdderEnv`** (`uvm_env`): crea agente y scoreboard; en `connect_phase` conecta `in_monitor.ap` → `scoreboard.input_export` y `out_monitor.ap` → `scoreboard.output_export`.
+- **`AdderTest`** (`uvm_test`): en `run_phase` levanta objection, arranca el clock (`Clock(...).start()`), aplica reset manual (`rst_n=0` → 1 ciclo → `rst_n=1`), corre la secuencia sobre el sequencer, espera `10ns` extra y baja la objection. En `check_phase`/`report_phase` solo loguea (la verificación real vive en el scoreboard).
+
+### Por qué dos monitores (input y output)
+
+El scoreboard nunca confía en lo que la secuencia *pidió*, sino en lo que cada monitor **observó realmente en el pin** del DUT:
+
+- El `AdderInputMonitor` captura `a`/`b` tal como llegaron al DUT (después del timing real del driver), no los valores que generó la secuencia.
+- Esto permite que el predictor (`write_input`) calcule el resultado esperado a partir de evidencia real del bus, no de la intención del testbench.
+- Si el scoreboard reporta un fallo, se puede descartar el driver/timing como causa: si el input_monitor capturó los valores correctos y aun así el output no coincide, el error está en el DUT.
+
+Ambos monitores son simétricos en diseño (mismo patrón `RisingEdge` + `ReadOnly` + assert de resolubilidad + `ap.write`), solo cambia qué señales leen. Ninguno maneja timing ni conduce señales — esa responsabilidad es exclusiva del driver.
+
+### Detalles de sincronización
+
+- `ReadOnly()` asegura que el monitor lea el valor ya estable al final del delta-cycle del `RisingEdge`, evitando leer un valor transitorio.
+- `is_resolvable` valida que la señal no tenga bits en `X`/`Z` antes de convertirla a entero; si el DUT aún no se ha estabilizado (por ejemplo, justo después del reset), esto lanza un assert claro en vez de un error críptico de conversión.
+- El driver escribe en `FallingEdge` para dejar el valor asentado antes del siguiente `RisingEdge`, evitando condiciones de carrera con la lógica síncrona del DUT.
+

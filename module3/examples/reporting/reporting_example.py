@@ -58,7 +58,7 @@ class ReportingTest(uvm_test):
         self.logger.info("  UVM_FULL: All messages")
         self.logger.info("  UVM_DEBUG: Debug messages")
         
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
         self.drop_objection()
     
     def report_phase(self):
@@ -80,7 +80,7 @@ class ReportingComponent(uvm_component):
     async def run_phase(self):
         """Run phase reporting."""
         self.logger.info(f"[{self.get_name()}] Running component")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
     
     def report_phase(self):
         """Report phase reporting."""
@@ -102,7 +102,7 @@ class HierarchicalReportingTest(uvm_test):
         """Run phase."""
         self.raise_objection()
         self.logger.info("Running HierarchicalReportingTest")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
         self.drop_objection()
 
 

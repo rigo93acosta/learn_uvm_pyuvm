@@ -1,7 +1,7 @@
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import Timer
-from enum import IntEnum, unique, auto
+from cocotb.triggers import Timer, RisingEdge
+from enum import IntEnum, unique
 import logging
 
 
@@ -23,9 +23,9 @@ class FSMMonitor:
     async def start_monitoring(self):
         """Observes state changes and outputs on each cycle."""
         while True:
-            await self.dut.clk.rising_edge
+            await RisingEdge(self.dut.clk)
             # Wait a small time for signals to stabilize
-            await Timer(1, unit="ns")
+            await Timer(1, units="ns")
 
             current_state = FsmState(self.dut.state.value)
             is_done = self.dut.done.value
@@ -38,15 +38,15 @@ async def reset_dut(dut, duration: int = 10):
     """Reset the DUT."""
     dut.start.value = 0
     dut.rst_n.value = 0
-    await Timer(duration, unit="ns")
+    await Timer(duration, units="ns")
     dut.rst_n.value = 1
-    await Timer(duration, unit="ns")
+    await Timer(duration, units="ns")
 
 
 @cocotb.test()
 async def test_fsm_reset(dut):
     """Test FSM reset functionality."""
-    clock = Clock(dut.clk, 10, unit="ns")
+    clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
 
     await reset_dut(dut)
@@ -64,12 +64,12 @@ async def test_fsm_idle_and_outputs(dut):
     Verify that the FSM remains in IDLE
     and 'done' is 0 without stimulus.
     """
-    clock = Clock(dut.clk, 10, unit="ns")
+    clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
     await reset_dut(dut)
 
     for _ in range(5):
-        await dut.clk.rising_edge
+        await RisingEdge(dut.clk)
         assert dut.state.value == FsmState.IDLE
         assert dut.done.value == 0, "Error: 'done' must be 0 in IDLE"
 
@@ -79,28 +79,28 @@ async def test_fsm_sequence_logic(dut):
     """
     Verify the sequence IDLE -> START -> WORK -> DONE -> IDLE.
     """
-    clock = Clock(dut.clk, 10, unit="ns")
+    clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
     await reset_dut(dut)
 
     # Trigger FSM
     dut.start.value = 1
-    await dut.clk.rising_edge
+    await RisingEdge(dut.clk)
     await Timer(1, "ns")
     assert dut.state.value == FsmState.START
     assert dut.done.value == 0
 
     dut.start.value = 0
-    await dut.clk.rising_edge
+    await RisingEdge(dut.clk)
     await Timer(1, "ns")
     assert dut.state.value == FsmState.WORK
     assert dut.done.value == 0
 
-    await dut.clk.rising_edge
+    await RisingEdge(dut.clk)
     await Timer(1, "ns")
     assert dut.state.value == FsmState.DONE
 
-    await dut.clk.rising_edge
+    await RisingEdge(dut.clk)
     await Timer(1, "ns")
     assert dut.state.value == FsmState.IDLE
     assert dut.done.value == 1, "Error: 'done' must be 1 in the DONE state"
@@ -114,14 +114,14 @@ async def test_fsm_reset_recovery(dut):
     Verify that a reset during operation returns the FSM to IDLE.
     """
 
-    clock = Clock(dut.clk, 10, unit="ns")
+    clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
     await reset_dut(dut)
     state = FsmState
     # Reach the WORK state
     dut.start.value = 1
-    await dut.clk.rising_edge  # To START
-    await dut.clk.rising_edge  # To WORK
+    await RisingEdge(dut.clk)  # To START
+    await RisingEdge(dut.clk)  # To WORK
     dut.start.value = 0
 
     # Apply unexpected reset
@@ -136,7 +136,7 @@ async def test_fsm_monitor(dut):
     Test with monitor to observe the sequence of states and outputs.
     This test does not assert, it only shows the monitor information.
     """
-    clock = Clock(dut.clk, 10, unit="ns")
+    clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
 
     monitor = FSMMonitor(dut)
@@ -147,8 +147,8 @@ async def test_fsm_monitor(dut):
     # Trigger FSM multiple times to see the sequence in the monitor
     for _ in range(3):
         dut.start.value = 1
-        await dut.clk.rising_edge
+        await RisingEdge(dut.clk)
         await Timer(1, "ns")
         dut.start.value = 0
-        await dut.clk.rising_edge
+        await RisingEdge(dut.clk)
         await Timer(20, "ns")

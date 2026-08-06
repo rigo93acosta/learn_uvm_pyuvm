@@ -220,6 +220,10 @@ Tener claro Secuencias y Secuencias Items:
 
 DUT: `module3/dut/simple_blocks/adder.v` (o `.vhd`), un sumador combinacional de 8 bits con acarreo, sincronizado a un reloj (`clk`) y con reset activo bajo (`rst_n`).
 
+Vista general del testbench UVM implementado en `test_simple_uvm.py`:
+
+![Relaciones del test UVM del adder](images/adder_uvm_explain.png)
+
 Jerarquía construida en `build_phase`:
 
 ```
@@ -235,7 +239,7 @@ AdderTest
 
 Componentes:
 
-- **`AdderTransaction`** (`uvm_sequence_item`): guarda `a`, `b`, `expected_sum`, `expected_carry`. La misma clase de transacción se reutiliza tanto para lo que la secuencia pide como para lo que cada monitor observa.
+- **`AdderTransaction`** (`uvm_sequence_item`): guarda `a`, `b`, `sum`, `carry`. La misma clase de transacción se reutiliza tanto para lo que la secuencia pide como para lo que cada monitor observa.
 - **`AdderSequence`** (`uvm_sequence`): genera 5 vectores de prueba fijos (incluye 2 casos de overflow) y los envía uno a uno con `start_item`/`finish_item`.
 - **`AdderDriver`** (`uvm_driver`): el único componente que escribe en el DUT. En `run_phase` hace `get_next_item()`, espera `FallingEdge(clk)` para evitar carreras con el DUT, escribe `a`/`b`, espera `RisingEdge(clk)` y llama `item_done()`.
 - **`AdderInputMonitor`** / **`AdderOutputMonitor`** (`uvm_monitor`): **pasivos**, no escriben nada. Cada uno espera `RisingEdge(clk)` + `ReadOnly()` (para leer el valor ya asentado al final del delta-cycle), valida que la señal no sea `X`/`Z` (`is_resolvable`) y publica una `AdderTransaction` por su `uvm_analysis_port`. El input_monitor lee `a`/`b` (lo que realmente llegó al DUT); el output_monitor lee `sum`/`carry`.

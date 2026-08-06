@@ -2,5 +2,7 @@ module*/examples/**/sim_build/
 module*/tests/**/sim_build/
 module*/examples/**/results.xml
 module*/tests/**/results.xml
+*.dat
+*.vcd
 *.fst
 __pycache__/

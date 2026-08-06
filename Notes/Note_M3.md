@@ -1,5 +1,25 @@
 # MODULE 3: UVM Fundamentals
 
+<!--toc:start-->
+- [MODULE 3: UVM Fundamentals](#module-3-uvm-fundamentals)
+  - [Jerarquia UVM](#jerarquia-uvm)
+  - [Class Hierarchy example code](#class-hierarchy-example-code)
+    - [Cambios realizados (Class Hierarchy)](#cambios-realizados-class-hierarchy)
+      - [Error 1](#error-1)
+      - [Error 2](#error-2)
+      - [Error 3](#error-3)
+  - [UVM Phases](#uvm-phases)
+  - [Reporting](#reporting)
+    - [Para configurar el verbosity level en pyuvm:](#para-configurar-el-verbosity-level-en-pyuvm)
+  - [Configuration Database](#configuration-database)
+  - [Factory](#factory)
+  - [Objection Mechanism](#objection-mechanism)
+  - [Test UVM Adder](#test-uvm-adder)
+    - [Test UVM Adder example code (`test_simple_uvm.py`)](#test-uvm-adder-example-code-testsimpleuvmpy)
+    - [Por qué dos monitores (input y output)](#por-qué-dos-monitores-input-y-output)
+    - [Detalles de sincronización](#detalles-de-sincronización)
+<!--toc:end-->
+
 Focusing on UVM (Universal Verification Methodology) fundamentals including class hierarchy, phases, reporting, configuration database, factory pattern, and objection mechanism.
 
 En esto módulo se profundiza en los siguientes temas:

@@ -16,6 +16,7 @@
   - [Objection Mechanism](#objection-mechanism)
   - [Test UVM Adder](#test-uvm-adder)
     - [Test UVM Adder example code (`test_simple_uvm.py`)](#test-uvm-adder-example-code-testsimpleuvmpy)
+    - [Cambios recientes en `test_simple_uvm.py`](#cambios-recientes-en-testsimpleuvmpy)
     - [Por qué dos monitores (input y output)](#por-qué-dos-monitores-input-y-output)
     - [Detalles de sincronización](#detalles-de-sincronización)
 <!--toc:end-->
@@ -240,10 +241,20 @@ Componentes:
 - **`AdderInputMonitor`** / **`AdderOutputMonitor`** (`uvm_monitor`): **pasivos**, no escriben nada. Cada uno espera `RisingEdge(clk)` + `ReadOnly()` (para leer el valor ya asentado al final del delta-cycle), valida que la señal no sea `X`/`Z` (`is_resolvable`) y publica una `AdderTransaction` por su `uvm_analysis_port`. El input_monitor lee `a`/`b` (lo que realmente llegó al DUT); el output_monitor lee `sum`/`carry`.
 - **`AdderScoreboard`** (`uvm_subscriber`): tiene dos `uvm_analysis_export` (`input_export`, `output_export`), cada uno con su `write` redirigido a un método distinto:
   - `write_input`: al llegar una transacción de entrada, calcula de inmediato `a + b` y guarda el resultado esperado en un `deque` (predictor).
-  - `write_out`: al llegar la transacción de salida, saca lo esperado del `deque` y lo compara contra `expected_sum`/`expected_carry` reales del DUT.
-- **`AdderAgent`** (`uvm_agent`): crea driver, ambos monitores y el sequencer; en `connect_phase` conecta `driver.seq_item_port` con `seqr.seq_item_export`.
-- **`AdderEnv`** (`uvm_env`): crea agente y scoreboard; en `connect_phase` conecta `in_monitor.ap` → `scoreboard.input_export` y `out_monitor.ap` → `scoreboard.output_export`.
-- **`AdderTest`** (`uvm_test`): en `run_phase` levanta objection, arranca el clock (`Clock(...).start()`), aplica reset manual (`rst_n=0` → 1 ciclo → `rst_n=1`), corre la secuencia sobre el sequencer, espera `10ns` extra y baja la objection. En `check_phase`/`report_phase` solo loguea (la verificación real vive en el scoreboard).
+  - `write_out`: al llegar la transaccion de salida, saca lo esperado del `deque` y lo compara contra `sum`/`carry` observados en el DUT.
+- **`AdderAgent`** (`uvm_agent`): crea driver, ambos monitores y el sequencer; guarda el sequencer en `ConfigDB` con la clave `SEQR`; en `connect_phase` conecta `driver.seq_item_port` con `seqr.seq_item_export`.
+- **`AdderEnv`** (`uvm_env`): crea agente y scoreboard; en `connect_phase` conecta `in_monitor.ap` → `scoreboard.input_export` y `out_monitor.ap` → `scoreboard.output_export`; en `start_of_simulation_phase` arranca el clock del DUT.
+- **`AdderTestSeq`** (`uvm_sequence`): funciona como una secuencia principal del test. Recupera el sequencer desde `ConfigDB`, aplica reset al DUT, ejecuta `AdderSequence` y deja un margen final de `10ns`.
+- **`AdderTest`** (`uvm_test`): en `end_of_elaboration_phase` crea `AdderTestSeq`; en `run_phase` solo levanta objection, arranca la secuencia principal y baja objection. En `check_phase`/`report_phase` solo loguea.
+
+### Cambios recientes en `test_simple_uvm.py`
+
+- Se movio la generacion del clock desde `AdderTest.run_phase()` hacia `AdderEnv.start_of_simulation_phase()`. Esto separa mejor la infraestructura del testbench del estimulo concreto del test.
+- Se agrego `AdderTestSeq` como secuencia de nivel superior. Esta secuencia aplica reset, obtiene el sequencer y luego arranca `AdderSequence`.
+- Se empezo a usar `ConfigDB` para compartir el sequencer: `AdderAgent` hace `ConfigDB().set(None, "*", "SEQR", self.seqr)` y `AdderTestSeq` lo recupera con `ConfigDB().get(None, "", "SEQR")`.
+- Punto importante de `ConfigDB` en pyuvm: el wildcard `"*"` se puede usar al guardar con `set()`, pero no al leer con `get()`. Por eso `get(None, "*", "SEQR")` falla con `"inst_name wildcards only allowed when storing"`.
+- Se renombraron los campos de salida observada de `expected_sum`/`expected_carry` a `sum`/`carry`. El output monitor no produce valores esperados; produce valores reales observados del DUT. Los valores esperados los calcula el scoreboard desde la transaccion capturada por el input monitor.
+- Se corrigio el typo `unitss="ns"` por `units="ns"` al usar `Clock`/`Timer`.
 
 ### Por qué dos monitores (input y output)
 
@@ -264,4 +275,3 @@ Ambos monitores son simétricos en diseño (mismo patrón `RisingEdge` + `ReadOn
 > **Nota al pie — fragilidad del `expected_deque` en el scoreboard:** el scoreboard actual empareja entrada/salida solo por **orden de llegada** (`deque.append` en `write_input`, `deque.popleft` en `write_out`). Esto asume que ambos monitores producen exactamente un evento por transacción real, en el mismo orden, sin duplicados ni huecos. Esa suposición se rompe fácilmente: ambos monitores muestrean en *cada* `RisingEdge(clk)` sin verificar si hubo un item nuevo, así que un ciclo idle entre dos `get_next_item()` del driver (o durante el reset inicial) puede meter una entrada espuria en la cola. A partir de ahí todo se desalinea en cascada, y el scoreboard reporta fallos que en realidad son bugs del testbench, no del DUT.
 >
 > **Solución general (correlación por identidad, no por orden):** cuando el protocolo no trae un tag/ID propio (como este adder, a diferencia de, por ejemplo, un ID de transacción en AXI), la marca debe generarse en el testbench y adjuntarse a la transacción en el momento de captura. Como ambos monitores muestrean sobre el mismo reloj (`await RisingEdge(self.dut.clk)`), el instante de muestreo (`cocotb.utils.get_sim_time()` o un contador de flancos) sirve como etiqueta compartida por construcción, sin que cada monitor necesite llevar su propio contador. En la práctica: agregar un campo `cycle_id` a `AdderTransaction`, asignarlo en ambos monitores justo después del `ReadOnly()`, y reemplazar el `deque` del scoreboard por un `dict` keyed por `cycle_id` (`expected_by_cycle[txn.cycle_id] = ...` en `write_input`, `expected_by_cycle.pop(txn.cycle_id, None)` en `write_out`). Así el emparejamiento depende de la identidad del evento, no del orden de llegada, y una clave faltante señala el ciclo exacto del problema en vez de desplazar silenciosamente todas las comparaciones siguientes.
-

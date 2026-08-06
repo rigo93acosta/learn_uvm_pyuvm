@@ -3,14 +3,13 @@ Module 3 Test Case 3.1: Simple UVM Test
 Complete UVM testbench for simple adder.
 """
 
-import cocotb
-from cocotb.clock import Clock
-from cocotb.triggers import Timer, RisingEdge, ReadOnly, FallingEdge, ClockCycles
-
-from pyuvm import *
-import pyuvm
-
 from collections import deque
+
+import cocotb
+import pyuvm
+from cocotb.clock import Clock
+from cocotb.triggers import ClockCycles, FallingEdge, ReadOnly, RisingEdge, Timer
+from pyuvm import *
 
 
 class AdderTransaction(uvm_sequence_item):
@@ -20,14 +19,14 @@ class AdderTransaction(uvm_sequence_item):
         super().__init__(name)
         self.a = 0
         self.b = 0
-        self.expected_sum = 0
-        self.expected_carry = 0
+        self.sum = 0
+        self.carry = 0
 
     def __str__(self):
         return (
             f"a=0x{self.a:02X}, b=0x{self.b:02X}, "
-            f"expected_sum=0x{self.expected_sum:02X}, "
-            f"expected_carry={self.expected_carry}"
+            f"sum=0x{self.sum:02X}, "
+            f"carry={self.carry}"
         )
 
 
@@ -48,8 +47,8 @@ class AdderSequence(uvm_sequence):
             txn = AdderTransaction()
             txn.a = a
             txn.b = b
-            txn.expected_sum = expected_sum
-            txn.expected_carry = expected_carry
+            txn.sum = expected_sum
+            txn.carry = expected_carry
             await self.start_item(txn)
             await self.finish_item(txn)
 
@@ -92,11 +91,13 @@ class AdderOutputMonitor(uvm_monitor):
                 "¡El DUT generó un valor X o Z indeterminado!"
             )
             txn = AdderTransaction("out_mon_txn")
-            txn.expected_sum = self.dut.sum.value.integer
-            txn.expected_carry = int(self.dut.carry.value)
+            txn.sum = self.dut.sum.value.integer
+            txn.carry = int(self.dut.carry.value)
 
             self.ap.write(txn)
-            self.logger.info(f"Output Monitor captured: sum=0x{txn.expected_sum:02X}, carry={txn.expected_carry}")
+            self.logger.info(
+                f"Output Monitor captured: sum=0x{txn.sum:02X}, carry={txn.carry}"
+            )
 
 
 class AdderInputMonitor(uvm_monitor):
@@ -123,7 +124,10 @@ class AdderInputMonitor(uvm_monitor):
             txn.b = self.dut.b.value.integer
 
             self.ap.write(txn)
-            self.logger.info(f"Input Monitor captured: a=0x{txn.a:02X}, b=0x{txn.b:02X}")
+            self.logger.info(
+                f"Input Monitor captured: a=0x{txn.a:02X}, b=0x{txn.b:02X}"
+            )
+
 
 class AdderScoreboard(uvm_subscriber):
     """Scoreboard for adder verification."""
@@ -164,16 +168,13 @@ class AdderScoreboard(uvm_subscriber):
 
         expected_data = self.expected_deque.popleft()
 
-        if (
-            txn.expected_sum != expected_data["sum"]
-            or txn.expected_carry != expected_data["carry"]
-        ):
+        if txn.sum != expected_data["sum"] or txn.carry != expected_data["carry"]:
             self.logger.error(
                 f"[FAIL] Mismatch in expected results: "
                 f"Expected sum=0x{expected_data['sum']:02X}, "
                 f"Expected carry={expected_data['carry']}, "
-                f"Got sum=0x{txn.expected_sum:02X}, "
-                f"Got carry={txn.expected_carry}"
+                f"Got sum=0x{txn.sum:02X}, "
+                f"Got carry={txn.carry}"
             )
             self.failed += 1
         else:
@@ -200,6 +201,7 @@ class AdderAgent(uvm_agent):
         self.in_monitor = AdderInputMonitor.create("in_monitor", self)
         self.out_monitor = AdderOutputMonitor.create("out_monitor", self)
         self.seqr = uvm_sequencer("sequencer", self)
+        ConfigDB().set(None, "*", "SEQR", self.seqr)
 
     def connect_phase(self):
         # In pyuvm, connect the sequencer to the driver
@@ -220,7 +222,29 @@ class AdderEnv(uvm_env):
         self.logger.info("Connecting AdderEnv")
         self.agent.in_monitor.ap.connect(self.scoreboard.input_export)
         self.agent.out_monitor.ap.connect(self.scoreboard.output_export)
-        
+
+    def start_of_simulation_phase(self):
+        cocotb.start_soon(Clock(cocotb.top.clk, 10, units="ns").start())
+        return super().start_of_simulation_phase()
+
+
+class AdderTestSeq(uvm_sequence):
+    logger = logging.getLogger("AdderTest")
+
+    async def body(self):
+
+        self.seqr = ConfigDB().get(None, "", "SEQR")
+        self.dut = cocotb.top
+
+        self.logger.info("Applying reset")
+        self.dut.rst_n.value = 0
+        self.dut.a.value = 0
+        self.dut.b.value = 0
+        await ClockCycles(self.dut.clk, 1)
+        self.dut.rst_n.value = 1
+
+        await AdderSequence("seq").start(self.seqr)
+        await Timer(10, units="ns")
 
 
 @pyuvm.test()
@@ -232,26 +256,15 @@ class AdderTest(uvm_test):
         self.logger.info("=" * 60)
         self.logger.info("Building AdderTest")
         self.logger.info("=" * 60)
-        self.env = AdderEnv.create("env", self)
+        self.env = AdderEnv("env", self)
+
+    def end_of_elaboration_phase(self):
+        self.sequence = AdderTestSeq("adder_test_seq")
 
     async def run_phase(self):
         self.raise_objection()
         self.logger.info("Running AdderTest")
-
-        cocotb.start_soon(Clock(cocotb.top.clk, 10, unitss="ns").start())
-        # Reset directo por hardware usando cocotb
-        self.logger.info("Applying reset")
-        cocotb.top.rst_n.value = 0
-        cocotb.top.a.value = 0
-        cocotb.top.b.value = 0
-        await ClockCycles(cocotb.top.clk, 1)
-        cocotb.top.rst_n.value = 1
-        
-        # Start sequence
-        seq = AdderSequence.create("seq")
-        await seq.start(self.env.agent.seqr)
-
-        await Timer(10, unitss="ns")
+        await self.sequence.start()
         self.drop_objection()
 
     def check_phase(self):

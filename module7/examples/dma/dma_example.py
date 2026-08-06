@@ -102,7 +102,7 @@ class DMARegisterDriver(uvm_driver):
             # In real code: cocotb.dut.dma_length.value = item.length
             # In real code: cocotb.dut.dma_start.value = 1
             
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
             self.seq_item_port.item_done()
 
 
@@ -121,7 +121,7 @@ class DMAMonitor(uvm_monitor):
             # Monitor DMA transfer completion
             # In real code: await RisingEdge(cocotb.dut.dma_done)
             
-            await Timer(20, unit="ns")
+            await Timer(20, units="ns")
             
             # Create transaction from monitored transfer
             txn = DMATransaction()
@@ -266,7 +266,7 @@ class DMATest(uvm_test):
         seq = DMASequence.create("seq")
         await seq.start(self.env.agent.seqr)
         
-        await Timer(100, unit="ns")
+        await Timer(100, units="ns")
         self.drop_objection()
     
     def check_phase(self):

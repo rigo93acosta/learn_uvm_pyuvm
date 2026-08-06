@@ -19,7 +19,7 @@ class ObjectionComponent(uvm_component):
         self.logger.info(f"[{self.get_name()}] Raised objection")
         
         # Simulate work
-        await Timer(50, unit="ns")
+        await Timer(50, units="ns")
         self.logger.info(f"[{self.get_name()}] Work completed")
         
         self.drop_objection()
@@ -38,13 +38,13 @@ class MultipleObjectionsComponent(uvm_component):
         self.raise_objection()
         self.logger.info(f"[{self.get_name()}] Raised 2 objections")
         
-        await Timer(30, unit="ns")
+        await Timer(30, units="ns")
         
         # Drop one objection
         self.drop_objection()
         self.logger.info(f"[{self.get_name()}] Dropped 1 objection, 1 remaining")
         
-        await Timer(20, unit="ns")
+        await Timer(20, units="ns")
         
         # Drop remaining objection
         self.drop_objection()
@@ -64,7 +64,7 @@ class ObjectionEnv(uvm_env):
         """Environment can also raise objections."""
         self.raise_objection()
         self.logger.info("[ObjectionEnv] Raised objection")
-        await Timer(100, unit="ns")
+        await Timer(100, units="ns")
         self.drop_objection()
         self.logger.info("[ObjectionEnv] Dropped objection")
 
@@ -90,7 +90,7 @@ class ObjectionTest(uvm_test):
         
         # Components will raise/drop their own objections
         # Simulation continues until all objections are dropped
-        await Timer(200, unit="ns")
+        await Timer(200, units="ns")
         
         self.logger.info("[Test] Dropping objection - simulation will end")
         self.drop_objection()
@@ -122,7 +122,7 @@ class ObjectionTimingTest(uvm_test):
         self.logger.info("Test started - objection raised")
         
         # Wait for components to complete
-        await Timer(150, unit="ns")
+        await Timer(150, units="ns")
         
         self.logger.info("All components should have dropped objections")
         self.logger.info("Dropping test objection - simulation will end")

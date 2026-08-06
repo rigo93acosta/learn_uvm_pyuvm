@@ -157,7 +157,7 @@ class ScoreboardTest(uvm_test):
                 txn.actual = i * 0x10
             self.env.scoreboard.write(txn)
         
-        await Timer(10, units="ns")
+        await Timer(10, unitss="ns")
         self.drop_objection()
     
     def report_phase(self):
@@ -190,7 +190,7 @@ class ReferenceModelScoreboardTest(uvm_test):
                 txn.actual = 0xFF
             self.env.scoreboard.write(txn)
         
-        await Timer(10, units="ns")
+        await Timer(10, unitss="ns")
         self.drop_objection()
     
     def report_phase(self):

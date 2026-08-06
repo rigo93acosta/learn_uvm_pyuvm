@@ -24,7 +24,7 @@ async def wait_ns(nanoseconds: int) -> None:
     This is a demonstration function. In real cocotb testbenches, you would use:
     ```python
     from cocotb.triggers import Timer
-    await Timer(nanoseconds, units="ns")
+    await Timer(nanoseconds, unitss="ns")
     ```
     
     Args:

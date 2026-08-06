@@ -30,62 +30,62 @@ class PhasesComponent(uvm_component):
     async def pre_reset_phase(self):
         """Pre-reset phase - before reset."""
         self.logger.info(f"[PRE_RESET] {self.get_name()}: Pre-reset phase")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
     
     async def reset_phase(self):
         """Reset phase - reset sequence."""
         self.logger.info(f"[RESET] {self.get_name()}: Reset phase")
-        await Timer(20, unit="ns")
+        await Timer(20, units="ns")
     
     async def post_reset_phase(self):
         """Post-reset phase - after reset."""
         self.logger.info(f"[POST_RESET] {self.get_name()}: Post-reset phase")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
     
     async def pre_configure_phase(self):
         """Pre-configure phase - before configuration."""
         self.logger.info(f"[PRE_CONFIGURE] {self.get_name()}: Pre-configure phase")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
     
     async def configure_phase(self):
         """Configure phase - configuration."""
         self.logger.info(f"[CONFIGURE] {self.get_name()}: Configure phase")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
     
     async def post_configure_phase(self):
         """Post-configure phase - after configuration."""
         self.logger.info(f"[POST_CONFIGURE] {self.get_name()}: Post-configure phase")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
     
     async def pre_main_phase(self):
         """Pre-main phase - before main test."""
         self.logger.info(f"[PRE_MAIN] {self.get_name()}: Pre-main phase")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
     
     async def main_phase(self):
         """Main phase - main test execution."""
         self.logger.info(f"[MAIN] {self.get_name()}: Main phase")
-        await Timer(50, unit="ns")
+        await Timer(50, units="ns")
     
     async def post_main_phase(self):
         """Post-main phase - after main test."""
         self.logger.info(f"[POST_MAIN] {self.get_name()}: Post-main phase")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
     
     async def pre_shutdown_phase(self):
         """Pre-shutdown phase - before shutdown."""
         self.logger.info(f"[PRE_SHUTDOWN] {self.get_name()}: Pre-shutdown phase")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
     
     async def shutdown_phase(self):
         """Shutdown phase - shutdown sequence."""
         self.logger.info(f"[SHUTDOWN] {self.get_name()}: Shutdown phase")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
     
     async def post_shutdown_phase(self):
         """Post-shutdown phase - after shutdown."""
         self.logger.info(f"[POST_SHUTDOWN] {self.get_name()}: Post-shutdown phase")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
     
     def extract_phase(self):
         """Extract phase - extract results."""
@@ -141,7 +141,7 @@ class PhasesTest(uvm_test):
         """Run phase - main execution."""
         self.raise_objection()
         self.logger.info("PHASES TEST - Run Phase (all run phases execute here)")
-        await Timer(200, unit="ns")
+        await Timer(200, units="ns")
         self.drop_objection()
     
     def check_phase(self):

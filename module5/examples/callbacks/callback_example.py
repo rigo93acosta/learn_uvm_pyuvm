@@ -60,7 +60,7 @@ class DriverWithCallbacks(uvm_driver):
 
             # Drive transaction (callback functionality not available in pyuvm)
             self.logger.info(f"[{self.get_name()}] Driving: {item}")
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
 
             await self.seq_item_port.item_done()
 
@@ -91,7 +91,7 @@ class MonitorWithCallbacks(uvm_monitor):
 
         while True:
             # Sample DUT (simulated)
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
 
             txn = DriverTransaction()
             txn.data = 0xAA
@@ -146,7 +146,7 @@ class CallbackTest(uvm_test):
     async def run_phase(self):
         self.raise_objection()
         self.logger.info("Running callback test")
-        await Timer(50, units="ns")
+        await Timer(50, unitss="ns")
         self.drop_objection()
     
     def report_phase(self):

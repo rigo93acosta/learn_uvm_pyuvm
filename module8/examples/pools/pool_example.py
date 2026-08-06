@@ -148,7 +148,7 @@ class PoolSequence(uvm_sequence):
             if pool:
                 pool.put(txn)
             
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
 
 
 class PoolEnv(uvm_env):
@@ -183,7 +183,7 @@ class PoolTest(uvm_test):
         seq = PoolSequence.create("seq")
         await seq.start(self.env.agent.seqr)
         
-        await Timer(50, unit="ns")
+        await Timer(50, units="ns")
         self.drop_objection()
     
     def report_phase(self):

@@ -20,10 +20,10 @@ async def async_reset(dut, duration_ns=50, propagation_delay_ns=10):
                               signal propagation and DUT stabilization
     """
     dut.rst_n.value = 0
-    await Timer(duration_ns, unit="ns")
+    await Timer(duration_ns, units="ns")
     dut.rst_n.value = 1
     # Wait for reset signal to propagate through DUT logic
-    await Timer(propagation_delay_ns, unit="ns")
+    await Timer(propagation_delay_ns, units="ns")
 
 
 class Scoreboard:
@@ -63,7 +63,7 @@ async def test_sequential_pattern(dut):
     """
     Demonstrates sequential stimulus pattern.
     """
-    clock = Clock(dut.clk, 10, unit="ns")
+    clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
     
     await async_reset(dut, duration_ns=1, propagation_delay_ns=1)
@@ -74,8 +74,8 @@ async def test_sequential_pattern(dut):
     
     for data in test_data:
         dut.d.value = data
-        await dut.clk.rising_edge
-        await Timer(1, unit="ns")
+        await RisingEdge(dut.clk)
+        await Timer(1, units="ns")
         cocotb.log.info(f"Wrote 0x{data:02X}, read 0x{dut.q.value.to_unsigned():02X}")
         assert dut.q.value.to_unsigned() == data
 
@@ -85,7 +85,7 @@ async def test_random_pattern(dut):
     """
     Demonstrates random stimulus pattern.
     """
-    clock = Clock(dut.clk, 10, unit="ns")
+    clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
     
     await async_reset(dut)
@@ -97,8 +97,8 @@ async def test_random_pattern(dut):
     for i in range(10):
         data = random.randint(0, 255)
         dut.d.value = data
-        await dut.clk.rising_edge
-        await Timer(1, unit="ns")
+        await RisingEdge(dut.clk)
+        await Timer(1, units="ns")
         cocotb.log.info(f"Random data 0x{data:02X}, read 0x{dut.q.value.to_unsigned():02X}")
         assert dut.q.value.to_unsigned() == data
 
@@ -108,7 +108,7 @@ async def test_scoreboard_pattern(dut):
     """
     Demonstrates scoreboard pattern.
     """
-    clock = Clock(dut.clk, 10, unit="ns")
+    clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
     
     await async_reset(dut)
@@ -124,8 +124,8 @@ async def test_scoreboard_pattern(dut):
     # Drive and check
     for data in test_data:
         dut.d.value = data
-        await dut.clk.rising_edge
-        await Timer(1, unit="ns")
+        await RisingEdge(dut.clk)
+        await Timer(1, units="ns")
         scoreboard.add_actual(dut.q.value.to_unsigned())
     
     # Check statistics
@@ -139,7 +139,7 @@ async def test_reference_model(dut):
     """
     Demonstrates reference model pattern.
     """
-    clock = Clock(dut.clk, 10, unit="ns")
+    clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
     
     await async_reset(dut)
@@ -161,8 +161,8 @@ async def test_reference_model(dut):
         # Update reference model
         reference_q = data
         
-        await dut.clk.rising_edge
-        await Timer(1, unit="ns")
+        await RisingEdge(dut.clk)
+        await Timer(1, units="ns")
         
         # Compare with reference
         actual_q = dut.q.value.to_unsigned()
@@ -175,7 +175,7 @@ async def test_transaction_level(dut):
     """
     Demonstrates transaction-level modeling.
     """
-    clock = Clock(dut.clk, 10, unit="ns")
+    clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
     
     await async_reset(dut, 1, 1)
@@ -199,8 +199,8 @@ async def test_transaction_level(dut):
     for txn in transactions:
         dut.enable.value = txn.enable
         dut.d.value = txn.data
-        await dut.clk.rising_edge
-        await Timer(1, unit="ns")
+        await RisingEdge(dut.clk)
+        await Timer(1, units="ns")
         
         if txn.expected_result is not None:
             assert dut.q.value.to_unsigned() == txn.expected_result, \

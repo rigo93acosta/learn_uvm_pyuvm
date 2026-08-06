@@ -71,7 +71,7 @@ class ComplexDriver(uvm_driver):
         while True:
             item = await self.seq_item_port.get_next_item()
             self.logger.info(f"Driving: {item}")
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
             self.seq_item_port.item_done()
 
 
@@ -83,7 +83,7 @@ class ComplexMonitor(uvm_monitor):
     
     async def run_phase(self):
         while True:
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
             txn = ComplexTransaction()
             txn.data = 0xAA
             txn.address = 0x1000
@@ -152,7 +152,7 @@ class ComplexTestbenchTest(uvm_test):
         seq = ComplexSequence.create("seq")
         await seq.start(self.env.agent.seqr)
         
-        await Timer(100, unit="ns")
+        await Timer(100, units="ns")
         self.drop_objection()
     
     def check_phase(self):

@@ -71,7 +71,7 @@ class AdderDriver(uvm_driver):
             self.dut.a.value = txn.a
             self.dut.b.value = txn.b
             await RisingEdge(self.dut.clk)
-            # await Timer(10, unit="ns")
+            # await Timer(10, units="ns")
             self.seq_item_port.item_done()
 
 
@@ -238,7 +238,7 @@ class AdderTest(uvm_test):
         self.raise_objection()
         self.logger.info("Running AdderTest")
 
-        cocotb.start_soon(Clock(cocotb.top.clk, 10, units="ns").start())
+        cocotb.start_soon(Clock(cocotb.top.clk, 10, unitss="ns").start())
         # Reset directo por hardware usando cocotb
         self.logger.info("Applying reset")
         cocotb.top.rst_n.value = 0
@@ -251,7 +251,7 @@ class AdderTest(uvm_test):
         seq = AdderSequence.create("seq")
         await seq.start(self.env.agent.seqr)
 
-        await Timer(10, units="ns")
+        await Timer(10, unitss="ns")
         self.drop_objection()
 
     def check_phase(self):

@@ -3,14 +3,15 @@ Module 3 Example 3.4: UVM ConfigDB
 Demonstrates UVM configuration database usage with default values.
 """
 
-import cocotb
-from cocotb.triggers import Timer
+from typing import Any
+
 import pyuvm
+from cocotb.triggers import Timer
 from pyuvm import *
 
 
 # ==============================================================================
-# AUX FUNCTION TO GET CONFIG WITH DEFAULT 
+# AUX FUNCTION TO GET CONFIG WITH DEFAULT
 # ==============================================================================
 def get_config(cntxt, inst_name, field_name, default=None):
     try:
@@ -24,10 +25,10 @@ class AgentConfig(uvm_object):
 
     def __init__(self, name="AgentConfig"):
         super().__init__(name)
-        self.active = True
-        self.has_coverage = False
-        self.address_width = 32
-        self.data_width = 8
+        self.active: bool = True
+        self.has_coverage: bool = False
+        self.address_width: int = 32
+        self.data_width: int = 8
 
 
 class ConfigurableAgent(uvm_agent):
@@ -37,7 +38,9 @@ class ConfigurableAgent(uvm_agent):
         """Build phase - get configuration from ConfigDB."""
         self.logger.info(f"[{self.get_name()}] Building agent")
 
-        config = get_config(self, "", "agent_config", default=None)
+        config: AgentConfig | Any = get_config(self, "", "agent_config", default=None)
+        self.active: bool
+        self.has_coverage: bool
 
         if config is not None:
             self.logger.info(
@@ -65,8 +68,6 @@ class ConfigurableEnv(uvm_env):
         """Build phase - set configuration in ConfigDB."""
         self.logger.info("Building ConfigurableEnv")
 
-
-        
         # Create and set configuration object
         agent_config = AgentConfig("agent_config")
         agent_config.active = True
@@ -75,17 +76,19 @@ class ConfigurableEnv(uvm_env):
         agent_config.data_width = 2
 
         # Configuramos para el path del agente
-        ConfigDB().set(self, "agent_t0", "agent_config", None)
+        ConfigDB().set(self, "agent_t0", "agent_config", agent_config)
         self.logger.info("Set agent_config in ConfigDB")
 
         # Si descomentas estos, también sobreescriben los escalares:
-        # ConfigDB().set(self, "agent_t0", "address_width", 16)
+        ConfigDB().set(self, "agent_t0", "address_width", 54)
         # ConfigDB().set(self, "agent_t0", "data_width", 2)
         self.logger.info("Set scalar configs in ConfigDB")
 
         # Create agent (will get config from ConfigDB)
+        # self.agent: AgentConfig | Any = get_config(
+        #     self, "agent_t0", "agent_config", default=None
+        # )
         self.agent = ConfigurableAgent.create("agent_t0", self)
-        
 
     def connect_phase(self):
         """Connect phase."""
@@ -119,7 +122,7 @@ class ConfigDBTest(uvm_test):
         if test_value is not None:
             self.logger.info(f"Got config: {test_value}")
 
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
         self.drop_objection()
 
     def report_phase(self):
@@ -164,5 +167,6 @@ class ConfigDBHierarchyTest(uvm_test):
         env_val = get_config(self, "env", "env_config", default="fallback_env")
         self.logger.info(f"  Env config: {env_val}")
 
-        await Timer(10, unit="ns")
+        self.logger.info(f"Agent: {self.env.agent.address_width}")
+        await Timer(10, units="ns")
         self.drop_objection()

@@ -90,7 +90,7 @@ class AndGateDriver(uvm_driver):
             # In real cocotb implementation:
             self.dut.a.value = txn.a
             self.dut.b.value = txn.b
-            await Timer(10, unit="ns")  # Wait for combinational logic
+            await Timer(10, units="ns")  # Wait for combinational logic
             
             self.logger.info(f"Driving DUT: a={txn.a}, b={txn.b} (expected y={txn.expected_y})")
             
@@ -135,7 +135,7 @@ class AndGateMonitor(uvm_monitor):
             # Send to scoreboard via analysis port
             self.ap.write(observed_txn)
             
-            await Timer(10, unit="ns")  # Wait for next sampling point
+            await Timer(10, units="ns")  # Wait for next sampling point
             self.logger.info("Monitoring DUT: sampling output y")
 
 
@@ -172,7 +172,7 @@ class AndGateTest(uvm_test):
         self.raise_objection()
         seq = AndGateSequence.create("seq")
         await seq.start(self.env.agent.seqr)
-        await Timer(100, unit="ns")
+        await Timer(100, units="ns")
         self.drop_objection()
     
     def check_phase(self):

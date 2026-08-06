@@ -163,7 +163,7 @@ class ProtocolMonitor(uvm_monitor):
             txn.timestamp = i * 10
             
             self.ap.write(txn)
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
 
 
 class ProtocolEnv(uvm_env):
@@ -193,7 +193,7 @@ class ProtocolCheckerTest(uvm_test):
     async def run_phase(self):
         self.raise_objection()
         self.logger.info("Running protocol checker test")
-        await Timer(100, unit="ns")
+        await Timer(100, units="ns")
         self.drop_objection()
     
     def report_phase(self):

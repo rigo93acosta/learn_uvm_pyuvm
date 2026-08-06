@@ -73,7 +73,7 @@ class SimpleDriver(uvm_driver):
         # In real code: cocotb.dut.address.value = txn.address
         # In real code: await RisingEdge(cocotb.dut.clk)
 
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
         self.logger.info(
             f"[{self.get_name()}] Signals driven: data=0x{txn.data:02X}, addr=0x{txn.address:04X}"
         )
@@ -110,19 +110,19 @@ class ProtocolDriver(uvm_driver):
         self.logger.info(f"[{self.get_name()}] Protocol: Asserting request")
         # In real code: cocotb.dut.req.value = 1
 
-        await Timer(5, unit="ns")
+        await Timer(5, units="ns")
 
         # Wait for grant (simulated)
         self.logger.info(f"[{self.get_name()}] Protocol: Waiting for grant")
         # In real code: await RisingEdge(cocotb.dut.gnt)
 
-        await Timer(5, unit="ns")
+        await Timer(5, units="ns")
 
         # Drive data
         self.logger.info(f"[{self.get_name()}] Protocol: Driving data")
         # In real code: cocotb.dut.data.value = txn.data
 
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
 
         # Deassert request
         self.logger.info(f"[{self.get_name()}] Protocol: Deasserting request")
@@ -161,7 +161,7 @@ class DriverTest(uvm_test):
         # seq = SimpleSequence.create("seq")
         # await seq.start(self.env.seqr)
 
-        await Timer(50, units="ns")
+        await Timer(50, unitss="ns")
         self.drop_objection()
 
     def report_phase(self):

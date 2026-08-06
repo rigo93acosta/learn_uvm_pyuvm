@@ -48,12 +48,12 @@ class SPIDriver(uvm_driver):
             # In real code: for i in range(8):  # 8 bits
             # In real code:     cocotb.dut.sclk.value = 0
             # In real code:     cocotb.dut.mosi.value = (item.data >> (7-i)) & 1
-            # In real code:     await Timer(period/2, units="ns")
+            # In real code:     await Timer(period/2, unitss="ns")
             # In real code:     cocotb.dut.sclk.value = 1
-            # In real code:     await Timer(period/2, units="ns")
+            # In real code:     await Timer(period/2, unitss="ns")
             # In real code: cocotb.dut.cs.value = 1  # Deassert CS
             
-            await Timer(100, unit="ns")
+            await Timer(100, units="ns")
             self.seq_item_port.item_done()
 
 
@@ -76,7 +76,7 @@ class SPIMonitor(uvm_monitor):
             # In real code:     await RisingEdge(cocotb.dut.sclk)
             # In real code:     data |= (cocotb.dut.miso.value << (7-i))
             
-            await Timer(100, unit="ns")
+            await Timer(100, units="ns")
             
             txn = SPITransaction()
             txn.data = 0xBB  # Simulated
@@ -155,7 +155,7 @@ class SPITest(uvm_test):
         seq = SPISequence.create("seq")
         await seq.start(self.env.master_agent.seqr)
         
-        await Timer(1000, unit="ns")
+        await Timer(1000, units="ns")
         self.drop_objection()
     
     def check_phase(self):

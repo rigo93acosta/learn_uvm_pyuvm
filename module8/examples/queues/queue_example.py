@@ -167,7 +167,7 @@ class QueueScoreboard(uvm_subscriber):
             if not self.queue.is_empty():
                 txn = self.queue.pop()
                 self.logger.info(f"[{self.get_name()}] Processing: {txn}")
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
 
 
 class QueueEnv(uvm_env):
@@ -208,7 +208,7 @@ class QueueTest(uvm_test):
             txn.address = i * 0x100
             txn.priority = i % 3
             self.env.ap.write(txn)
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
         
         # Test priority queue
         for i in range(5):
@@ -218,7 +218,7 @@ class QueueTest(uvm_test):
             txn.priority = 5 - i  # Higher priority first
             self.env.priority_queue.push(txn)
         
-        await Timer(100, unit="ns")
+        await Timer(100, units="ns")
         self.drop_objection()
     
     def report_phase(self):

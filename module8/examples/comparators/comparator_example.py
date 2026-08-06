@@ -267,7 +267,7 @@ class ComparatorTest(uvm_test):
             txn.address = i * 0x100
             self.env.scoreboard.write_actual(txn)
         
-        await Timer(50, unit="ns")
+        await Timer(50, units="ns")
         self.drop_objection()
     
     def report_phase(self):

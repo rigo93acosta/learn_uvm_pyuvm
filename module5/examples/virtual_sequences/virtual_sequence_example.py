@@ -160,7 +160,7 @@ class VirtualDriver(uvm_driver):
                 txn = await self.seq_item_port.get_next_item()
                 self.logger.info(f"[{self.get_name()}] Received transaction: {txn}")
                 # Simulate some processing
-                await Timer(1, units="ns")
+                await Timer(1, unitss="ns")
                 self.seq_item_port.item_done()
         except Exception as e:
             self.logger.warning(f"[{self.get_name()}] Driver run_phase ended: {e}")
@@ -233,7 +233,7 @@ class VirtualSequenceTest(uvm_test):
             await virtual_seq.start(self.env.virtual_seqr)
 
             # Give some time for sequences to complete
-            await Timer(50, units="ns")
+            await Timer(50, unitss="ns")
 
             self.logger.info("Virtual sequence test completed successfully")
         except Exception as e:

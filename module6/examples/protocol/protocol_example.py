@@ -86,20 +86,20 @@ class AXI4LiteDriver(uvm_driver):
         # In real code: cocotb.dut.awvalid.value = 1
         # In real code: cocotb.dut.awaddr.value = txn.addr
         # In real code: await RisingEdge(cocotb.dut.awready)
-        await Timer(5, unit="ns")
+        await Timer(5, units="ns")
         self.logger.info(f"[{self.get_name()}] Write address channel: addr=0x{txn.addr:08X}")
         
         # AXI4-Lite Write Data Channel
         # In real code: cocotb.dut.wvalid.value = 1
         # In real code: cocotb.dut.wdata.value = txn.data
         # In real code: cocotb.dut.wstrb.value = txn.strb
-        await Timer(5, unit="ns")
+        await Timer(5, units="ns")
         self.logger.info(f"[{self.get_name()}] Write data channel: data=0x{txn.data:08X}")
         
         # AXI4-Lite Write Response Channel
         # In real code: await RisingEdge(cocotb.dut.bvalid)
         # In real code: resp = cocotb.dut.bresp.value.integer
-        await Timer(5, unit="ns")
+        await Timer(5, units="ns")
         self.logger.info(f"[{self.get_name()}] Write response: OKAY")
     
     async def read_transaction(self, txn):
@@ -110,14 +110,14 @@ class AXI4LiteDriver(uvm_driver):
         # In real code: cocotb.dut.arvalid.value = 1
         # In real code: cocotb.dut.araddr.value = txn.addr
         # In real code: await RisingEdge(cocotb.dut.arready)
-        await Timer(5, unit="ns")
+        await Timer(5, units="ns")
         self.logger.info(f"[{self.get_name()}] Read address channel: addr=0x{txn.addr:08X}")
         
         # AXI4-Lite Read Data Channel
         # In real code: await RisingEdge(cocotb.dut.rvalid)
         # In real code: txn.data = cocotb.dut.rdata.value.integer
         # In real code: resp = cocotb.dut.rresp.value.integer
-        await Timer(5, unit="ns")
+        await Timer(5, units="ns")
         self.logger.info(f"[{self.get_name()}] Read data channel: data=0x{txn.data:08X}")
 
 
@@ -138,7 +138,7 @@ class AXI4LiteMonitor(uvm_monitor):
             # In real code: await RisingEdge(cocotb.dut.wvalid)
             # In real code: await RisingEdge(cocotb.dut.bvalid)
             
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
             
             # Create transaction from monitored signals
             txn = AXI4LiteTransaction()
@@ -223,7 +223,7 @@ class AXI4LiteTest(uvm_test):
         seq = AXI4LiteSequence.create("seq")
         await seq.start(self.env.agent.seqr)
         
-        await Timer(100, unit="ns")
+        await Timer(100, units="ns")
         self.drop_objection()
     
     def report_phase(self):

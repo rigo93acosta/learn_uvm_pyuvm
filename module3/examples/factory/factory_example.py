@@ -36,7 +36,7 @@ class BaseDriver(uvm_driver):
 
     async def run_phase(self):
         self.logger.info(f"[BaseDriver] {self.get_name()}: Running base driver")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
 
 
 class ExtendedDriver(BaseDriver):
@@ -44,7 +44,7 @@ class ExtendedDriver(BaseDriver):
 
     async def run_phase(self):
         self.logger.info(f"[ExtendedDriver] {self.get_name()}: Running extended driver")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
 
 
 class FactoryAgent(uvm_agent):
@@ -103,7 +103,7 @@ class FactoryTest(uvm_test):
         ext_txn.address = 0x1000
         self.logger.info(f"Created: {ext_txn}")
 
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
         self.drop_objection()
 
     def report_phase(self):
@@ -136,7 +136,7 @@ class FactoryOverrideTest(uvm_test):
         """Run phase."""
         self.raise_objection()
         self.logger.info("Running FactoryOverrideTest")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
         self.drop_objection()
 
 

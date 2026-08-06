@@ -184,7 +184,7 @@ class TransactionTest(uvm_test):
         unpacked.unpack(packed)
         self.logger.info(f"Unpacked: {unpacked}")
 
-        await Timer(10, units="ns")
+        await Timer(10, unitss="ns")
         self.drop_objection()
 
     def report_phase(self):

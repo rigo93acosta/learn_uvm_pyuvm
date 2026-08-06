@@ -67,7 +67,7 @@ class MyMonitor(uvm_monitor):
         """Run phase."""
         self.logger.info("Running MyMonitor")
         # Monitor would sample DUT signals here
-        await Timer(100, unit="ns")
+        await Timer(100, units="ns")
 
 
 class MyAgent(uvm_agent):
@@ -140,7 +140,7 @@ class ClassHierarchyTest(uvm_test):
         txn.address = 0x1000
         self.logger.info(f"Created transaction: {txn}")
         
-        await Timer(100, unit="ns")
+        await Timer(100, units="ns")
         self.drop_objection()
     
     def check_phase(self):

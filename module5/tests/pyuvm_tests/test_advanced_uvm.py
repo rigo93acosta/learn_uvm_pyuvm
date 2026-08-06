@@ -71,7 +71,7 @@ class AdvancedDriver(uvm_driver):
         while True:
             item = await self.seq_item_port.get_next_item()
             print(f"Driving: {item}")
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
             self.seq_item_port.item_done()
 
 
@@ -83,7 +83,7 @@ class AdvancedMonitor(uvm_monitor):
     
     async def run_phase(self):
         while True:
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
             txn = AdvancedTransaction()
             txn.data = 0xAA
             txn.channel = 0
@@ -154,7 +154,7 @@ class AdvancedUVMTest(uvm_test):
         seq = AdvancedSequence.create("seq")
         await seq.start(self.env.agent.seqr)
         
-        await Timer(100, unit="ns")
+        await Timer(100, units="ns")
         self.drop_objection()
     
     def check_phase(self):

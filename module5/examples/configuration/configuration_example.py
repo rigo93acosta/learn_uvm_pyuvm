@@ -169,7 +169,7 @@ class ConfigurationTest(uvm_test):
         self.logger.info(f"  Master agent config: {self.env.master_agent.config}")
         self.logger.info(f"  Slave agent config: {self.env.slave_agent.config}")
         
-        await Timer(10, units="ns")
+        await Timer(10, unitss="ns")
         self.drop_objection()
     
     def report_phase(self):

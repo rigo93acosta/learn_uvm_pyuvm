@@ -55,20 +55,20 @@ async def generate_clock(dut, period_ns=10):
     """Generate clock signal."""
     while True:
         dut.clk.value = 1
-        await Timer(period_ns // 2, units="ns")
+        await Timer(period_ns // 2, unitss="ns")
 
         dut.clk.value = 0
-        await Timer(period_ns // 2, units="ns")
+        await Timer(period_ns // 2, unitss="ns")
 
 
 async def reset_dut(dut, duration_ns=20):
     """Reset the DUT."""
     dut.rst_n.value = 0
     dut.enable.value = 0
-    await Timer(duration_ns, units="ns")
+    await Timer(duration_ns, unitss="ns")
 
     dut.rst_n.value = 1
-    await Timer(10, units="ns")
+    await Timer(10, unitss="ns")
 
 
 @cocotb.test()
@@ -105,7 +105,7 @@ async def test_counter_increment(dut):
     # Count for several cycles
     for expected_count in range(1, 11):
         await RisingEdge(dut.clk)
-        await Timer(1, units="ns")  # Wait for combinational logic
+        await Timer(1, unitss="ns")  # Wait for combinational logic
 
         actual_count = int(dut.count.value)
         assert actual_count == expected_count, (
@@ -127,7 +127,7 @@ async def test_counter_enable(dut):
     # Enable and count
     dut.enable.value = 1
     await RisingEdge(dut.clk)
-    await Timer(1, units="ns")
+    await Timer(1, unitss="ns")
 
     assert dut.count.value == 1, "Counter should increment when enabled"
 
@@ -135,7 +135,7 @@ async def test_counter_enable(dut):
     dut.enable.value = 0
     count_before = int(dut.count.value)
     await RisingEdge(dut.clk)
-    await Timer(1, units="ns")
+    await Timer(1, unitss="ns")
 
     count_after = int(dut.count.value)
     assert count_after == count_before, "Counter should not increment when disabled"
@@ -143,7 +143,7 @@ async def test_counter_enable(dut):
     # Re-enable and verify it continues
     dut.enable.value = 1
     await RisingEdge(dut.clk)
-    await Timer(1, units="ns")
+    await Timer(1, unitss="ns")
 
     assert dut.count.value == count_before + 1, (
         "Counter should resume incrementing when re-enabled"
@@ -178,7 +178,7 @@ async def test_counter_overflow(dut):
     # A genuine wrap requires 256 increments from 0 (0 -> 1 -> ... -> 255 -> 0).
     for _ in range(MAX_COUNT + 1):
         await RisingEdge(dut.clk)
-        await Timer(1, units="ns")
+        await Timer(1, unitss="ns")
 
         new_count = int(dut.count.value)
         if prev_count == MAX_COUNT and new_count == 0:
@@ -206,9 +206,9 @@ async def test_counter_clock_period(dut):
     cocotb.start_soon(generate_clock(dut, period_ns=period_ns))
 
     await RisingEdge(dut.clk)
-    t1 = get_sim_time(units="ns")
+    t1 = get_sim_time(unitss="ns")
     await RisingEdge(dut.clk)
-    t2 = get_sim_time(units="ns")
+    t2 = get_sim_time(unitss="ns")
 
     measured_period = t2 - t1
     assert measured_period == period_ns, (
@@ -228,11 +228,11 @@ async def test_counter_no_glitch(dut):
     dut.enable.value = 1
 
     await RisingEdge(dut.clk)
-    await Timer(1, units="ns")  # Wait for combinational logic
+    await Timer(1, unitss="ns")  # Wait for combinational logic
     count_after_edge = int(dut.count.value)
 
     # Sample mid-cycle: value must not have changed
-    await Timer(4, units="ns")
+    await Timer(4, unitss="ns")
     count_mid_cycle = int(dut.count.value)
     assert count_mid_cycle == count_after_edge, (
         f"Glitch detected: count changed from {count_after_edge} to "
@@ -251,16 +251,16 @@ async def test_counter_reset_duration(dut):
 
     dut.rst_n.value = 0
     dut.enable.value = 0
-    t_reset_start = get_sim_time(units="ns")
+    t_reset_start = get_sim_time(unitss="ns")
 
     min_reset_ns = 20  # Minimum reset duration required by the design/spec
-    await Timer(min_reset_ns, units="ns")
+    await Timer(min_reset_ns, unitss="ns")
 
     assert dut.rst_n.value == 0, (
         f"rst_n was released before the required {min_reset_ns}ns minimum"
     )
 
-    elapsed = get_sim_time(units="ns") - t_reset_start
+    elapsed = get_sim_time(unitss="ns") - t_reset_start
     assert elapsed >= min_reset_ns, (
         f"Reset held for only {elapsed}ns, {min_reset_ns}ns required"
     )

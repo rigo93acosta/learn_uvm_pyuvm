@@ -145,7 +145,7 @@ class CoverageMonitor(uvm_monitor):
             txn.address = addr
             txn.command = cmd
             self.ap.write(txn)
-            await Timer(10, units="ns")
+            await Timer(10, unitss="ns")
 
 
 class CoverageEnv(uvm_env):
@@ -173,7 +173,7 @@ class CoverageTest(uvm_test):
     async def run_phase(self):
         self.raise_objection()
         self.logger.info("Running coverage test")
-        await Timer(100, units="ns")
+        await Timer(100, unitss="ns")
         self.drop_objection()
     
     def report_phase(self):

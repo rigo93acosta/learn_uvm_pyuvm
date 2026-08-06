@@ -91,7 +91,7 @@ class MathUtilsTest(uvm_test):
     
     async def run_phase(self):
         self.raise_objection()
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
         self.drop_objection()
 
 

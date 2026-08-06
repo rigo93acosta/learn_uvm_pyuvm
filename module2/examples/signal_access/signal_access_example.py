@@ -12,7 +12,7 @@ from cocotb.triggers import Timer, RisingEdge
 async def test_signal_access_basic(dut):
     """
     Basic signal access example.
-    
+
     Demonstrates:
     - Accessing DUT signals
     - Reading signal values
@@ -21,37 +21,39 @@ async def test_signal_access_basic(dut):
     # Start clock
     clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
-    
+
     # Initialize signals
     dut.rst_n.value = 0
     dut.enable.value = 0
     dut.d.value = 0
-    
+
     # Wait for initial values
     await Timer(10, units="ns")
-    
+
     # Read initial values
     cocotb.log.info(f"Initial q value: {dut.q.value.integer}")
     cocotb.log.info(f"Initial q value (integer): {dut.q.value.integer}")
     cocotb.log.info(f"Initial q value (binary): {dut.q.value.integer}")
-    cocotb.log.info(f"Width of q signal: {len(dut.q)} bits") # Accessing signal width
-    
+    cocotb.log.info(f"Width of q signal: {len(dut.q)} bits")  # Accessing signal width
+
     # Deassert reset
     dut.rst_n.value = 1
     await Timer(10, units="ns")
-    
+
     # Read after reset
     cocotb.log.info(f"After reset q value: {dut.q.value.integer}")
-    
+
     # Enable and write data
     dut.enable.value = 1
     dut.d.value = 0xAB
     await RisingEdge(dut.clk)
     await Timer(1, units="ns")
-    
+
     # Read output
     cocotb.log.info(f"After write q value: 0x{dut.q.value.integer:02X}")
-    assert dut.q.value.integer == 0xAB, f"Expected 0xAB, got 0x{dut.q.value.integer:02X}"
+    assert dut.q.value.integer == 0xAB, (
+        f"Expected 0xAB, got 0x{dut.q.value.integer:02X}"
+    )
 
 
 @cocotb.test()
@@ -61,24 +63,24 @@ async def test_signal_types(dut):
     """
     clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
-    
+
     dut.rst_n.value = 1
     dut.enable.value = 1
-    
+
     # Test single-bit signal
     cocotb.log.info(f"enable signal type: {type(dut.enable.value)}")
     cocotb.log.info(f"enable value: {int(dut.enable.value)}")
-    
+
     # Test multi-bit signal
     cocotb.log.info(f"d signal width: {len(dut.d)}")
     cocotb.log.info(f"q signal width: {len(dut.q)}")
-    
+
     # Test different value assignments
     dut.d.value = 0x12  # Integer
     await RisingEdge(dut.clk)
     await Timer(1, units="ns")
     cocotb.log.info(f"Assigned 0x12, got: 0x{dut.q.value.integer:02X}")
-    
+
     dut.d.value = 0b10101010  # Binary literal
     await RisingEdge(dut.clk)
     await Timer(1, units="ns")
@@ -93,36 +95,37 @@ async def test_signal_properties(dut):
     """
     clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
-    
+
     dut.rst_n.value = 1
     dut.enable.value = 1
-    
+
     # Test signal properties
     cocotb.log.info(f"Signal name: {dut.q._name}")
     cocotb.log.info(f"Signal path: {dut.q._path}")
     cocotb.log.info(f"Signal width: {len(dut.q)}")
-    
+
     # Test value representations
     dut.d.value = 0x5A
     await RisingEdge(dut.clk)
     await Timer(1, units="ns")
-    
+
     cocotb.log.info(f"Integer: {dut.q.value.integer}")
     cocotb.log.info(f"Binary: {dut.q.value}")
     cocotb.log.info(f"Hex: {hex(dut.q.value.integer)}")
     cocotb.log.info(f"String: {str(dut.q.value.integer)}")
 
+
 @cocotb.test()
 async def test_bus_integrity_and_width(dut):
-    """ Verificación de anchos de señal y límites del bus."""
-    
-    # Verificación de anchos definidos en el Verilog 
-    width_d = len(dut.d)    
+    """Verificación de anchos de señal y límites del bus."""
+
+    # Verificación de anchos definidos en el Verilog
+    width_d = len(dut.d)
     width_q = len(dut.q)
-    
+
     cocotb.log.info(f"Ancho detectado - d: {width_d} bits, q: {width_q} bits")
     assert width_d == 8, "El bus 'd' debería ser de 8 bits"
-    
+
     # Prueba de desbordamiento (Overflow)
     # Al ser 8 bits, el valor máximo es 255. Intentamos escribir 256.
     try:
@@ -130,6 +133,6 @@ async def test_bus_integrity_and_width(dut):
     except (OverflowError, ValueError):
         cocotb.log.info("[ERROR] Cocotb evita un desbordamiento en el bus 'd'")
     await Timer(1, units="ns")
-    
+
     # Comprobar acceso por ruta jerárquica
     cocotb.log.info(f"Ruta completa de la señal q: {dut.q._path}")

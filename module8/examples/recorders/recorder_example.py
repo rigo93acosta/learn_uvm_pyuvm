@@ -223,9 +223,9 @@ class RecorderTest(uvm_test):
             txn.timestamp = i * 10
             
             self.env.ap.write(txn)
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
         
-        await Timer(50, unit="ns")
+        await Timer(50, units="ns")
         self.drop_objection()
     
     def report_phase(self):

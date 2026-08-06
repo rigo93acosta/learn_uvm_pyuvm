@@ -43,14 +43,14 @@ class UARTDriver(uvm_driver):
             
             # UART transmission: Start bit -> Data bits -> Parity -> Stop bit(s)
             # In real code: cocotb.dut.tx.value = 0  # Start bit
-            # In real code: await Timer(bit_time, units="ns")
+            # In real code: await Timer(bit_time, unitss="ns")
             # In real code: for i in range(8):  # Data bits
             # In real code:     cocotb.dut.tx.value = (item.data >> i) & 1
-            # In real code:     await Timer(bit_time, units="ns")
+            # In real code:     await Timer(bit_time, unitss="ns")
             # In real code: cocotb.dut.tx.value = 1  # Stop bit
-            # In real code: await Timer(bit_time, units="ns")
+            # In real code: await Timer(bit_time, unitss="ns")
             
-            await Timer(100, unit="ns")  # Simulated transmission time
+            await Timer(100, units="ns")  # Simulated transmission time
             self.seq_item_port.item_done()
 
 
@@ -68,13 +68,13 @@ class UARTMonitor(uvm_monitor):
         while True:
             # Monitor UART reception
             # In real code: await FallingEdge(cocotb.dut.rx)  # Start bit
-            # In real code: await Timer(bit_time / 2, units="ns")  # Sample at middle
+            # In real code: await Timer(bit_time / 2, unitss="ns")  # Sample at middle
             # In real code: data = 0
             # In real code: for i in range(8):  # Data bits
-            # In real code:     await Timer(bit_time, units="ns")
+            # In real code:     await Timer(bit_time, unitss="ns")
             # In real code:     data |= (cocotb.dut.rx.value << i)
             
-            await Timer(100, unit="ns")
+            await Timer(100, units="ns")
             
             # Create transaction from received data
             txn = UARTTransaction()
@@ -151,7 +151,7 @@ class UARTTest(uvm_test):
         seq = UARTSequence.create("seq")
         await seq.start(self.env.agent.seqr)
         
-        await Timer(1000, unit="ns")
+        await Timer(1000, units="ns")
         self.drop_objection()
     
     def check_phase(self):

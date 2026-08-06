@@ -74,7 +74,7 @@ class BestPracticesComponent(uvm_component):
         - Handle exceptions
         """
         self.logger.info(f"[{self.get_name()}] Running component (best practices)")
-        await Timer(10, unit="ns")
+        await Timer(10, units="ns")
     
     def check_phase(self):
         """
@@ -135,7 +135,7 @@ class ReusableComponent(uvm_component):
         """Run phase - component operation."""
         if self.enabled:
             self.logger.info(f"[{self.get_name()}] Running in {self.mode} mode")
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
 
 
 class WellOrganizedEnv(uvm_env):
@@ -228,7 +228,7 @@ class BestPracticesTest(uvm_test):
         """
         self.raise_objection()
         self.logger.info("Running best practices test")
-        await Timer(50, unit="ns")
+        await Timer(50, units="ns")
         self.drop_objection()
     
     def check_phase(self):

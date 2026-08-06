@@ -84,7 +84,7 @@ class MultiAgentDriver(uvm_driver):
         while True:
             item = await self.seq_item_port.get_next_item()
             self.logger.info(f"[{self.get_name()}] Driving: {item}")
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
             self.seq_item_port.item_done()
 
 
@@ -100,7 +100,7 @@ class MultiAgentMonitor(uvm_monitor):
         self.logger.info(f"[{self.get_name()}] Starting monitor")
         
         while True:
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
             txn = MultiAgentTransaction()
             txn.data = 0xAA
             txn.address = 0x1000
@@ -263,7 +263,7 @@ class MultiAgentTest(uvm_test):
         # Start virtual sequence
         await virtual_seq.start(None)  # Virtual sequencer would be used here
         
-        await Timer(100, unit="ns")
+        await Timer(100, units="ns")
         self.drop_objection()
     
     def report_phase(self):

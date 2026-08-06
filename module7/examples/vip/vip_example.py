@@ -50,7 +50,7 @@ class VIPDriver(uvm_driver):
         while True:
             item = await self.seq_item_port.get_next_item()
             self.logger.info(f"[{self.get_name()}] Driving: {item}")
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
             self.seq_item_port.item_done()
 
 
@@ -64,7 +64,7 @@ class VIPMonitor(uvm_monitor):
     async def run_phase(self):
         """Run phase."""
         while True:
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
             txn = VIPTransaction()
             txn.data = 0xAA
             txn.address = 0x1000
@@ -185,7 +185,7 @@ class VIPTest(uvm_test):
     async def run_phase(self):
         self.raise_objection()
         self.logger.info("Running VIP test")
-        await Timer(100, unit="ns")
+        await Timer(100, units="ns")
         self.drop_objection()
     
     def check_phase(self):

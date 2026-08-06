@@ -45,12 +45,12 @@ class I2CDriver(uvm_driver):
             
             # I2C transmission: START -> Address -> R/W -> ACK -> Data -> ACK -> STOP
             # In real code: cocotb.dut.sda.value = 0  # START condition
-            # In real code: await Timer(period, units="ns")
+            # In real code: await Timer(period, unitss="ns")
             # In real code: # Transmit address
             # In real code: for i in range(7):  # 7-bit address
             # In real code:     cocotb.dut.sda.value = (item.address >> (6-i)) & 1
             # In real code:     cocotb.dut.scl.value = 1
-            # In real code:     await Timer(period, units="ns")
+            # In real code:     await Timer(period, unitss="ns")
             # In real code:     cocotb.dut.scl.value = 0
             # In real code: # Transmit R/W bit
             # In real code: cocotb.dut.sda.value = 0 if item.is_write else 1
@@ -59,11 +59,11 @@ class I2CDriver(uvm_driver):
             # In real code:     for i in range(8):  # 8 bits
             # In real code:         cocotb.dut.sda.value = (byte >> (7-i)) & 1
             # In real code:         cocotb.dut.scl.value = 1
-            # In real code:         await Timer(period, units="ns")
+            # In real code:         await Timer(period, unitss="ns")
             # In real code:         cocotb.dut.scl.value = 0
             # In real code: cocotb.dut.sda.value = 1  # STOP condition
             
-            await Timer(200, unit="ns")
+            await Timer(200, units="ns")
             self.seq_item_port.item_done()
 
 
@@ -87,7 +87,7 @@ class I2CMonitor(uvm_monitor):
             # In real code:     address |= (cocotb.dut.sda.value << (6-i))
             # In real code:     await FallingEdge(cocotb.dut.scl)
             
-            await Timer(200, unit="ns")
+            await Timer(200, units="ns")
             
             txn = I2CTransaction()
             txn.address = 0x50  # Simulated
@@ -169,7 +169,7 @@ class I2CTest(uvm_test):
         seq = I2CSequence.create("seq")
         await seq.start(self.env.master1_agent.seqr)
         
-        await Timer(1000, unit="ns")
+        await Timer(1000, units="ns")
         self.drop_objection()
     
     def check_phase(self):

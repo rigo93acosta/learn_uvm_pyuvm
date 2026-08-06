@@ -186,7 +186,7 @@ class ChannelMonitor(uvm_monitor):
         self.logger.info(f"[{self.get_name()}] Starting monitor for channel {self.channel_id}")
         
         for i in range(5):
-            await Timer(10, units="ns")
+            await Timer(10, unitss="ns")
             
             txn = ChannelTransaction()
             txn.data = i * 0x10
@@ -249,7 +249,7 @@ class MultiChannelScoreboardTest(uvm_test):
                 txn.expected = i * 0x10
                 self.env.scoreboard.add_expected(txn, channel_id)
         
-        await Timer(100, units="ns")
+        await Timer(100, unitss="ns")
         self.drop_objection()
     
     def report_phase(self):

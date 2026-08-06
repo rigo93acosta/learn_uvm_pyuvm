@@ -46,7 +46,7 @@ class UtilitiesDriver(uvm_driver):
         while True:
             item = await self.seq_item_port.get_next_item()
             self.logger.info(f"Driving: {item}")
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
             self.seq_item_port.item_done()
 
 
@@ -58,7 +58,7 @@ class UtilitiesMonitor(uvm_monitor):
     
     async def run_phase(self):
         while True:
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
             txn = UtilitiesTransaction()
             txn.data = 0xAA
             txn.address = 0x1000
@@ -126,7 +126,7 @@ class UtilitiesTest(uvm_test):
         seq = UtilitiesSequence.create("seq")
         await seq.start(self.env.agent.seqr)
         
-        await Timer(200, unit="ns")
+        await Timer(200, units="ns")
         self.drop_objection()
     
     def check_phase(self):

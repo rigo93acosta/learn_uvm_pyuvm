@@ -43,7 +43,7 @@ async def reset_dut(dut, duration: int = 10):
     await Timer(duration, units="ns")
 
 
-@cocotb.test()
+@cocotb.test
 async def test_fsm_reset(dut):
     """Test FSM reset functionality."""
     clock = Clock(dut.clk, 10, units="ns")
@@ -56,9 +56,10 @@ async def test_fsm_reset(dut):
     assert dut.state.value == state.IDLE, (
         f"FSM should be in IDLE state after reset, got {dut.state.value}"
     )
+    assert dut.done.value == 0, "FSM 'done' signal should be 0 after reset"
 
 
-@cocotb.test()
+@cocotb.test
 async def test_fsm_idle_and_outputs(dut):
     """
     Verify that the FSM remains in IDLE
@@ -74,7 +75,7 @@ async def test_fsm_idle_and_outputs(dut):
         assert dut.done.value == 0, "Error: 'done' must be 0 in IDLE"
 
 
-@cocotb.test()
+@cocotb.test
 async def test_fsm_sequence_logic(dut):
     """
     Verify the sequence IDLE -> START -> WORK -> DONE -> IDLE.
@@ -117,7 +118,6 @@ async def test_fsm_reset_recovery(dut):
     clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
     await reset_dut(dut)
-    state = FsmState
     # Reach the WORK state
     dut.start.value = 1
     await RisingEdge(dut.clk)  # To START
@@ -126,11 +126,13 @@ async def test_fsm_reset_recovery(dut):
 
     # Apply unexpected reset
     await reset_dut(dut, duration=5)
-    assert dut.state.value == state.IDLE, "The FSM did not return to IDLE after reset"
+    assert dut.state.value == FsmState.IDLE, (
+        "The FSM did not return to IDLE after reset"
+    )
     assert dut.done.value == 0, "The 'done' signal remained stuck after reset"
 
 
-@cocotb.test()
+@cocotb.test
 async def test_fsm_monitor(dut):
     """
     Test with monitor to observe the sequence of states and outputs.

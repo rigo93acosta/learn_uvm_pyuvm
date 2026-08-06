@@ -108,7 +108,7 @@ class CLPDriver(uvm_driver):
             txn = await self.seq_item_port.get_next_item()
             self.logger.info(f"[{self.get_name()}] Received transaction: {txn}")
             # Simulate processing
-            await Timer(1, unit="ns")
+            await Timer(1, units="ns")
             self.seq_item_port.item_done()
 
 
@@ -162,7 +162,7 @@ class CLPTest(uvm_test):
         seq.num_transactions = num_txns
         await seq.start(self.env.agent.seqr)
         
-        await Timer(100, unit="ns")
+        await Timer(100, units="ns")
         self.drop_objection()
     
     def report_phase(self):

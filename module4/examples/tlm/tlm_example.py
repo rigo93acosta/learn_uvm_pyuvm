@@ -52,7 +52,7 @@ class PutConsumer(uvm_put_export):
     async def put(self, txn):
         """Put implementation method."""
         self.logger.info(f"[{self.get_name()}] Received via put: {txn}")
-        await Timer(5, units="ns")
+        await Timer(5, unitss="ns")
 
     async def try_put(self, txn):
         """Try put implementation method."""
@@ -84,7 +84,7 @@ class GetProducer(uvm_get_export):
             txn = self.transactions[self.index]
             self.index += 1
             self.logger.info(f"[{self.get_name()}] Providing via get: {txn}")
-            await Timer(5, units="ns")
+            await Timer(5, unitss="ns")
             return txn
         return None
 
@@ -133,7 +133,7 @@ class TransportComponent(uvm_transport_export):
         # Create response
         resp = TLMTransaction()
         resp.data = req.data + 1
-        await Timer(10, units="ns")
+        await Timer(10, unitss="ns")
         self.logger.info(f"[{self.get_name()}] Sending response: {resp}")
         return resp
 
@@ -232,7 +232,7 @@ class TLMTest(uvm_test):
         resp = await self.env.transport_comp.transport_port.transport(req)
         self.logger.info(f"Request: {req}, Response: {resp}")
 
-        await Timer(100, units="ns")
+        await Timer(100, unitss="ns")
         self.drop_objection()
 
     def report_phase(self):

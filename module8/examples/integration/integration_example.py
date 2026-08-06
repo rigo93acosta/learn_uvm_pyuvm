@@ -226,7 +226,7 @@ class IntegrationSequence(uvm_sequence):
             if pool:
                 pool.put(txn)
             
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
 
 
 class IntegrationAgent(uvm_agent):
@@ -312,7 +312,7 @@ class IntegrationTest(uvm_test):
             txn.address = random.randint(0x1000, 0x2000)
             self.env.scoreboard.write_expected(txn)
         
-        await Timer(200, unit="ns")
+        await Timer(200, units="ns")
         self.drop_objection()
     
     def report_phase(self):

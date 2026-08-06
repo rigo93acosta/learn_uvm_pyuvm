@@ -135,7 +135,7 @@ class RegisterDriver(uvm_driver):
                 print(f"[{self.get_name()}] Reading register: {item}")
                 # In real: data = self.reg_model.read(item.address)
             
-            await Timer(10, units="ns")
+            await Timer(10, unitss="ns")
             self.seq_item_port.item_done()
 
 
@@ -199,7 +199,7 @@ class RegisterModelTest(uvm_test):
         seq = RegisterSequence.create("seq")
         await seq.start(self.env.agent.seqr)
         
-        await Timer(10, units="ns")
+        await Timer(10, unitss="ns")
         self.drop_objection()
     
     def report_phase(self):

@@ -74,7 +74,7 @@ class RandomSequence(uvm_sequence):
             txn.randomize()
             await self.start_item(txn)
             await self.finish_item(txn)
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
 
 
 class ConstrainedRandomSequence(uvm_sequence):
@@ -107,7 +107,7 @@ class ConstrainedRandomSequence(uvm_sequence):
             
             await self.start_item(txn)
             await self.finish_item(txn)
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
 
 
 class RandomUtilsExample(uvm_component):
@@ -213,7 +213,7 @@ class RandomUtilsTest(uvm_test):
             seq.seed = 42
         await seq.start(self.env.agent.seqr)
         
-        await Timer(50, unit="ns")
+        await Timer(50, units="ns")
         self.drop_objection()
     
     def report_phase(self):

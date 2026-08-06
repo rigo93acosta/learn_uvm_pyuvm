@@ -76,7 +76,7 @@ class Layer0Component(uvm_component):
             txn.layer = 0
             self.logger.info(f"[{self.get_name()}] Layer 0: {txn}")
             self.ap.write(txn)
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
 
 
 class Layer1Subscriber(uvm_subscriber):
@@ -117,7 +117,7 @@ class Layer1Component(uvm_component):
     async def run_phase(self):
         """Run phase - Layer 1 processing."""
         self.logger.info(f"[{self.get_name()}] Running Layer 1")
-        await Timer(50, unit="ns")
+        await Timer(50, units="ns")
 
 
 class Layer2Subscriber(uvm_subscriber):
@@ -205,7 +205,7 @@ class ReusableComponent(uvm_component):
         """Run phase - component operation."""
         if self.enabled:
             self.logger.info(f"[{self.get_name()}] Running in {self.mode} mode")
-            await Timer(10, unit="ns")
+            await Timer(10, units="ns")
         else:
             self.logger.info(f"[{self.get_name()}] Component disabled")
 
@@ -250,7 +250,7 @@ class ArchitectureTest(uvm_test):
     async def run_phase(self):
         self.raise_objection()
         self.logger.info("Running architecture test")
-        await Timer(100, unit="ns")
+        await Timer(100, units="ns")
         self.drop_objection()
     
     def report_phase(self):
@@ -273,7 +273,7 @@ class ReusableTest(uvm_test):
     async def run_phase(self):
         self.raise_objection()
         self.logger.info("Running reusable component test")
-        await Timer(50, unit="ns")
+        await Timer(50, units="ns")
         self.drop_objection()
     
     def report_phase(self):

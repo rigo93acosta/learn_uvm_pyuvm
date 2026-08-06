@@ -55,7 +55,7 @@ class AgentDriver(uvm_driver):
             # Drive to DUT (simulated)
             # In real code: cocotb.dut.data.value = item.data
             # In real code: cocotb.dut.address.value = item.address
-            await Timer(10, units="ns")
+            await Timer(10, unitss="ns")
 
             self.seq_item_port.item_done()
 
@@ -73,7 +73,7 @@ class AgentMonitor(uvm_monitor):
 
         while True:
             # Sample DUT (simulated)
-            await Timer(10, units="ns")
+            await Timer(10, unitss="ns")
 
             # Create transaction from sampled signals
             txn = AgentTransaction()
@@ -187,7 +187,7 @@ class CompleteAgentTest(uvm_test):
             await seq.start(self.env.agent.seqr)
 
         self.logger.info("Agent components created and connected successfully")
-        await Timer(100, units="ns")
+        await Timer(100, unitss="ns")
         self.drop_objection()
 
     def report_phase(self):
@@ -212,7 +212,7 @@ class PassiveAgentTest(uvm_test):
     async def run_phase(self):
         self.raise_objection()
         self.logger.info("Running passive agent test")
-        await Timer(100, units="ns")
+        await Timer(100, unitss="ns")
         self.drop_objection()
 
     def report_phase(self):

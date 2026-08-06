@@ -43,7 +43,6 @@ WAVES = 1
 ifeq ($(SIM),verilator)
 TOPLEVEL_LANG = verilog
 VERILATOR_TRACE = 1
-COMPILE_ARGS += --trace-fst
 	# When using Verilator, ignore VHDL files
 	VHDL_FILES :=
 	VHDL_SOURCES :=

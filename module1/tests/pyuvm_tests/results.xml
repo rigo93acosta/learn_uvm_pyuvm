@@ -1,6 +1,0 @@
-<testsuites name="results">
-  <testsuite name="all" package="all">
-    <property name="random_seed" value="1780106499" />
-    <testcase name="AndGateTest" classname="test_and_gate_uvm" file="/home/racostagonzalez/Documents/Learn/learn_uvm_pyuvm/.venv/lib/python3.13/site-packages/pyuvm/extension_classes.py" lineno="164" time="0.0031270980834960938" sim_time_ns="140.0" ratio_time="44769.942055504725" />
-  </testsuite>
-</testsuites>

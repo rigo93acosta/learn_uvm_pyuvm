@@ -1,7 +1,0 @@
-<testsuites name="results">
-  <testsuite name="all" package="all">
-    <property name="random_seed" value="1768574480" />
-    <testcase name="test_objection" classname="objections_example" file="/home/yongfu/proj/learn_uvm_pyuvm/module3/examples/objections/objections_example.py" lineno="133" time="0.0010068416595458984" sim_time_ns="200.0" ratio_time="198640.96613781672" />
-    <testcase name="test_objection_timing" classname="objections_example" file="/home/yongfu/proj/learn_uvm_pyuvm/module3/examples/objections/objections_example.py" lineno="143" time="0.0004971027374267578" sim_time_ns="149.99999999999997" ratio_time="301748.489208633" />
-  </testsuite>
-</testsuites>

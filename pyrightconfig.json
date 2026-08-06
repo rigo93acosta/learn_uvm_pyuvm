@@ -1,0 +1,8 @@
+{
+  "typeCheckingMode": "basic",
+  "reportArgumentType": false,
+  "reportCallIssue": false,
+  "reportUnknownMemberType": false,
+  "reportUnknownArgumentType": false,
+  "reportMissingParameterType": false
+}

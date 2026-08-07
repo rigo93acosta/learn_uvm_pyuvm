@@ -3,10 +3,12 @@ Module 4 Example 4.1: UVM Driver Implementation
 Demonstrates driver implementation with transaction reception and signal driving.
 """
 
+import random
+
 import pyuvm
+from cocotb.clock import Clock
+from cocotb.triggers import RisingEdge, Timer
 from pyuvm import *
-import cocotb
-from cocotb.triggers import Timer, RisingEdge
 
 
 class SimpleTransaction(uvm_sequence_item):
@@ -36,6 +38,7 @@ class SimpleDriver(uvm_driver):
         """Build phase - create sequencer port."""
         self.logger.info(f"[{self.get_name()}] Building driver")
         # self.seq_item_port = uvm_seq_item_port("seq_item_port", self)
+        self.dut = cocotb.top  # Reference to DUT signals
 
     def connect_phase(self):
         """Connect phase - connect to sequencer."""
@@ -73,9 +76,13 @@ class SimpleDriver(uvm_driver):
         # In real code: cocotb.dut.address.value = txn.address
         # In real code: await RisingEdge(cocotb.dut.clk)
 
+        self.dut.data.value = txn.data
+        self.dut.address.value = txn.address
+        await RisingEdge(self.dut.clk)
+
         await Timer(10, units="ns")
         self.logger.info(
-            f"[{self.get_name()}] Signals driven: data=0x{txn.data:02X}, addr=0x{txn.address:04X}"
+            f"[{self.get_name()}] Signals driven: \tdata=0x{txn.data:02X}, addr=0x{txn.address:04X}"
         )
 
 
@@ -134,13 +141,28 @@ class DriverAgent(uvm_agent):
 
     def build_phase(self):
         self.logger.info("Building DriverAgent")
-        # self.driver = SimpleDriver.create("driver", self)
-        self.driver = ProtocolDriver.create("protocol_driver", self)
-        self.seqr = uvm_sequencer.create("sequencer", self)
+        self.driver = SimpleDriver("driver", self)
+        # self.driver = ProtocolDriver.create("protocol_driver", self)
+        self.seqr = uvm_sequencer("sequencer", self)
 
     def connect_phase(self):
         self.logger.info("Connecting DriverAgent")
         self.driver.seq_item_port.connect(self.seqr.seq_item_export)
+
+    def end_of_elaboration_phase(self):
+        self.logger.info("DriverAgent else phase - additional connections if needed")
+        cocotb.start_soon(Clock(self.driver.dut.clk, 10, units="ns").start())
+
+
+class SimpleSequence(uvm_sequence):
+    async def body(self):
+
+        for _ in range(3):
+            txn = SimpleTransaction()
+            txn.data = random.randint(0, 255)
+            txn.address = random.randint(0, 65535)
+            await self.start_item(txn)
+            await self.finish_item(txn)
 
 
 @pyuvm.test()
@@ -160,8 +182,10 @@ class DriverTest(uvm_test):
         # Note: In real test, you would start a sequence here
         # seq = SimpleSequence.create("seq")
         # await seq.start(self.env.seqr)
+        seq = SimpleSequence()
+        await seq.start(self.env.seqr)
 
-        await Timer(50, unitss="ns")
+        await Timer(50, units="ns")
         self.drop_objection()
 
     def report_phase(self):

@@ -3,11 +3,11 @@ Module 4 Example 4.3: UVM Sequencer and Sequences
 Demonstrates sequencer usage and sequence implementation.
 """
 
-import pyuvm
-from pyuvm import *
-import cocotb
-from cocotb.triggers import Timer
 import random
+
+import pyuvm
+from cocotb.triggers import Timer
+from pyuvm import *
 
 
 class DataTransaction(uvm_sequence_item):
@@ -33,14 +33,19 @@ class SimpleSequence(uvm_sequence):
     - Sequence execution
     """
 
-    async def body(self):
-        """Body method - sequence execution."""
+    def __init__(self, name="SimpleSequence"):
+        super().__init__(name)
         # Ensure logger exists (sequences may not have logger until started)
         if not hasattr(self, "logger"):
             import logging
-            self.logger = logging.getLogger(f"{self.__class__.__name__}.{self.get_name()}")
+
+            self.logger = logging.getLogger(
+                f"{self.__class__.__name__}.{self.get_name()}"
+            )
             self.logger.setLevel(logging.INFO)
 
+    async def body(self):
+        """Body method - sequence execution."""
         self.logger.info(f"[{self.get_name()}] Starting sequence body")
 
         # Create and send transactions
@@ -75,15 +80,17 @@ class RandomSequence(uvm_sequence):
     def __init__(self, name="RandomSequence", num_items=10):
         super().__init__(name)
         self.num_items = num_items
-
-    async def body(self):
-        """Body method with random transactions."""
         # Ensure logger exists (sequences may not have logger until started)
         if not hasattr(self, "logger"):
             import logging
-            self.logger = logging.getLogger(f"{self.__class__.__name__}.{self.get_name()}")
+
+            self.logger = logging.getLogger(
+                f"{self.__class__.__name__}.{self.get_name()}"
+            )
             self.logger.setLevel(logging.INFO)
 
+    async def body(self):
+        """Body method with random transactions."""
         self.logger.info(
             f"[{self.get_name()}] Starting random sequence ({self.num_items} items)"
         )
@@ -117,18 +124,21 @@ class LayeredSequence(uvm_sequence):
         # Ensure logger exists (sequences may not have logger until started)
         if not hasattr(self, "logger"):
             import logging
-            self.logger = logging.getLogger(f"{self.__class__.__name__}.{self.get_name()}")
+
+            self.logger = logging.getLogger(
+                f"{self.__class__.__name__}.{self.get_name()}"
+            )
             self.logger.setLevel(logging.INFO)
 
         self.logger.info(f"[{self.get_name()}] Starting layered sequence")
 
         # Start simple sequence
-        simple_seq = SimpleSequence.create("simple_seq")
+        simple_seq = SimpleSequence("simple_seq")
         await simple_seq.start(self.sequencer)
         self.logger.info(f"[{self.get_name()}] Completed simple sequence")
 
         # Start random sequence
-        random_seq = RandomSequence.create("random_seq")
+        random_seq = RandomSequence("random_seq")
         random_seq.num_items = 3  # Customize number of items for random sequence
         await random_seq.start(self.sequencer)
         self.logger.info(f"[{self.get_name()}] Completed random sequence")
@@ -148,7 +158,7 @@ class SequencerDriver(uvm_driver):
 
             # Simulate processing with DUT
 
-            await Timer(1, unitss="ns")
+            await Timer(1, units="ns")
             self.seq_item_port.item_done()
 
 
@@ -173,7 +183,7 @@ class SequencerTest(uvm_test):
         self.logger.info("=" * 60)
         self.logger.info("Sequencer Example Test")
         self.logger.info("=" * 60)
-        self.env = SequencerAgent.create("env", self)
+        self.env = SequencerAgent("env", self)
 
     async def run_phase(self):
         self.raise_objection()
@@ -181,22 +191,23 @@ class SequencerTest(uvm_test):
 
         # Note: Sequence starting has issues in current pyuvm implementation
         # In a working implementation, you would start sequences here:
-        seq1 = SimpleSequence.create("seq1")
+        seq1 = SimpleSequence("seq1")
         await seq1.start(self.env.seqr)
-        seq2 = RandomSequence.create("seq2")
+        seq2 = RandomSequence("seq2")
         seq2.num_items = 5  # Customize number of items for random sequence
         await seq2.start(self.env.seqr)
         # seq3 = LayeredSequence.create("seq3")
         # await seq3.start(self.env.seqr)
 
         self.logger.info("Sequencer components created and connected successfully")
-        await Timer(10, unitss="ns")
+        await Timer(10, units="ns")
         self.drop_objection()
 
     def report_phase(self):
         self.logger.info("=" * 60)
         self.logger.info("Sequencer test completed")
         self.logger.info("=" * 60)
+
 
 @pyuvm.test()
 class LayeredSequenceTest(uvm_test):
@@ -206,17 +217,17 @@ class LayeredSequenceTest(uvm_test):
         self.logger.info("=" * 60)
         self.logger.info("Layered Sequence Test")
         self.logger.info("=" * 60)
-        self.env = SequencerAgent.create("env", self)
+        self.env = SequencerAgent("env", self)
 
     async def run_phase(self):
         self.raise_objection()
         self.logger.info("Running layered sequence test")
 
-        layered_seq = LayeredSequence.create("layered_seq")
+        layered_seq = LayeredSequence("layered_seq")
         await layered_seq.start(self.env.seqr)
 
         self.logger.info("Layered sequence started successfully")
-        await Timer(10, unitss="ns")
+        await Timer(10, units="ns")
         self.drop_objection()
 
     def report_phase(self):

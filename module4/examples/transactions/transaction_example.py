@@ -3,12 +3,12 @@ Module 4 Example: Transaction-Level Modeling
 Demonstrates transaction design, operations, and methods.
 """
 
-import pyuvm
-from pyuvm import *
-import cocotb
-from cocotb.triggers import Timer
-import copy
 import struct
+
+import cocotb
+import pyuvm
+from cocotb.triggers import Timer
+from pyuvm import *
 
 
 class BaseTransaction(uvm_sequence_item):
@@ -184,7 +184,7 @@ class TransactionTest(uvm_test):
         unpacked.unpack(packed)
         self.logger.info(f"Unpacked: {unpacked}")
 
-        await Timer(10, unitss="ns")
+        await Timer(10, units="ns")
         self.drop_objection()
 
     def report_phase(self):

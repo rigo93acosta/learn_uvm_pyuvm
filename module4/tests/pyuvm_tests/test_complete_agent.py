@@ -4,10 +4,10 @@ Complete UVM testbench with driver, monitor, sequencer, and scoreboard.
 """
 
 import cocotb
-from cocotb.clock import Clock
-from cocotb.triggers import Timer, RisingEdge, FallingEdge, ClockCycles, ReadOnly
-from pyuvm import *
 import pyuvm
+from cocotb.clock import Clock
+from cocotb.triggers import ClockCycles, FallingEdge, ReadOnly, RisingEdge, Timer
+from pyuvm import *
 
 
 class InterfaceTransaction(uvm_sequence_item):
@@ -63,7 +63,7 @@ class InterfaceDriver(uvm_driver):
             self.dut.data.value = item.data
             self.dut.address.value = item.address
             self.dut.valid.value = 1
-            # await Timer(10, unitss="ns")
+            # await Timer(10, units="ns")
             await RisingEdge(self.dut.clk)
             self.logger.info(f"Driving: {item}")
             self.dut.valid.value = 0
@@ -84,7 +84,7 @@ class InterfaceMonitor(uvm_monitor):
             await ReadOnly()
             if self.dut.ready.value.integer == 1:
                 result = self.dut.result.value.integer
-                # await Timer(10, unitss="ns")
+                # await Timer(10, units="ns")
                 # Create transaction from sampled values
                 txn = InterfaceTransaction()
                 txn.data = self.dut.data.value.integer
@@ -161,7 +161,7 @@ class CompleteAgentTest(uvm_test):
 
     async def run_phase(self):
         self.raise_objection()
-        cocotb.start_soon(Clock(self.dut.clk, 10, unitss="ns").start())
+        cocotb.start_soon(Clock(self.dut.clk, 10, units="ns").start())
 
         self.logger.info("Running CompleteAgentTest")
         await FallingEdge(self.dut.clk)
@@ -173,7 +173,7 @@ class CompleteAgentTest(uvm_test):
         seq = InterfaceSequence.create("seq")
         await seq.start(self.env.agent.seqr)
 
-        await Timer(100, unitss="ns")
+        await Timer(100, units="ns")
         self.drop_objection()
 
     def check_phase(self):

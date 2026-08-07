@@ -20,7 +20,7 @@ TOPLEVEL = simple_interface
 COCOTB_REDUCED_LOG_FMT = 1
 WAVES := 1
 
-EXTRA_ARGS += --trace --trace-fst --trace-structs
+EXTRA_ARGS += --trace
 
 # Include cocotb makefile
 include $(shell cocotb-config --makefiles)/Makefile.sim

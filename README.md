@@ -273,13 +273,21 @@ Introduction to UVM methodology:
 **Complexity**: Intermediate-Advanced
 
 Build complete UVM testbenches:
-- Drivers, monitors, sequencers
-- Sequences and sequence items
-- TLM (Transaction-Level Modeling)
-- Scoreboards
-- Agents and environments
+- Transaction classes with copy, compare, pack, unpack, and string conversion helpers
+- Drivers using `seq_item_port`, `get_next_item()`, and `item_done()`
+- Monitors using analysis ports to publish observed transactions
+- Sequencers running deterministic, random, and layered sequences
+- TLM (Transaction-Level Modeling), scoreboards, agents, and environments
 
 **Quick Start**: `./scripts/module4.sh`
+
+**Focused examples**:
+
+```bash
+cd module4/examples/sequencers
+uv run make clean
+uv run make
+```
 
 ### Module 5: Advanced UVM Concepts
 **Complexity**: Advanced
@@ -396,6 +404,39 @@ make SIM=verilator TEST=test_and_gate
 cd module1/tests/pyuvm_tests
 make SIM=verilator TEST=test_and_gate_uvm
 ```
+
+When using `uv`, prefix the same make commands with `uv run`:
+
+```bash
+cd module4/examples/sequencers
+uv run make clean
+uv run make
+```
+
+### Filtering pyuvm Tests with cocotb 1.9.x
+
+For tests decorated with `@pyuvm.test()` under cocotb 1.9.x, `TESTCASE` selects the generated cocotb wrapper name, not the pyuvm test class name. In `module4/examples/sequencers/sequencer_example.py`:
+
+```text
+SequencerTest        -> TESTCASE=test_1
+LayeredSequenceTest  -> TESTCASE=test_2
+```
+
+Run only the layered sequence test:
+
+```bash
+cd module4/examples/sequencers
+uv run make clean
+uv run make TESTCASE=test_2
+```
+
+Run both sequencer tests explicitly:
+
+```bash
+uv run make TESTCASE=test_1,test_2
+```
+
+Using `TESTCASE=LayeredSequenceTest` with cocotb 1.9.x will fail because `LayeredSequenceTest` is a pyuvm class, not the generated cocotb coroutine name. cocotb 2.x handles names differently, so check the cocotb/pyuvm versions when filtering individual tests.
 
 ### Using Command-Line Arguments
 

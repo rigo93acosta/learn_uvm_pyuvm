@@ -261,3 +261,555 @@ module simple_interface (
 
 - **Propósito:** Inicializa el árbol jerárquico y gobierna los tiempos de reset y simulación global.
 - **Refactorización:** Se habilitó el generador de reloj concurrente nativo de cocotb (`Clock(self.dut.clk, 10, units="ns").start()`), lo que permite que el tiempo virtual del simulador avance. Aplica un reset inicial controlado síncronamente antes de arrancar la secuencia mediante el uso seguro de objeciones UVM (`raise_objection` / `drop_objection`), garantizando que la simulación no finalice de manera prematura mientras haya transacciones en el bus.
+
+## Conclusiones sobre TLM, Scoreboards y FIFOs de Análisis
+
+La discusión sobre scoreboards termina conectando tres ideas que suelen aparecer separadas cuando uno aprende UVM: `uvm_subscriber`, `uvm_scoreboard` y las FIFOs TLM usadas como buffers entre monitores y lógica de comparación. La conclusión práctica es que no existe una única forma correcta para todos los casos; existe un nivel de complejidad adecuado para cada tipo de verificación.
+
+La frase que resume el patrón más robusto es:
+
+```text
+El monitor publica sin bloquear.
+El FIFO almacena.
+El scoreboard decide cuándo consumir y comparar.
+```
+
+Esa separación es importante porque evita que el orden exacto y el instante exacto en que se llama a `write()` determinen toda la arquitectura del scoreboard. El monitor debe observar y publicar. El scoreboard debe comparar. El FIFO permite que ambos no dependan rígidamente uno del otro.
+
+### `uvm_subscriber` vs `uvm_scoreboard`
+
+`uvm_subscriber` y `uvm_scoreboard` se parecen porque ambos pueden terminar siendo usados como scoreboards, pero conceptualmente responden a preguntas distintas.
+
+`uvm_subscriber` responde a:
+
+```text
+Como recibo transactions desde un analysis_port?
+```
+
+`uvm_scoreboard` responde a:
+
+```text
+Donde pongo la logica de comparacion, prediccion y chequeo?
+```
+
+Un `uvm_subscriber` ya trae un `analysis_export` preparado para conectarse directamente a un `uvm_analysis_port`. Por eso es muy cómodo para ejemplos simples:
+
+```python
+class SimpleScoreboard(uvm_subscriber):
+    def build_phase(self):
+        self.mismatches = []
+
+    def write(self, txn):
+        expected = self.model_predict(txn.data)
+        if txn.result != expected:
+            self.mismatches.append((txn, expected))
+```
+
+Y en el environment:
+
+```python
+self.agent.monitor.ap.connect(self.scoreboard.analysis_export)
+```
+
+Este patrón es directo y pedagógico:
+
+```text
+Monitor.ap -> Scoreboard.analysis_export -> write(txn)
+```
+
+Funciona bien cuando hay una sola fuente de datos, la comparación es inmediata y no hace falta coordinar múltiples streams. En el ejemplo actual del `InterfaceScoreboard`, esto tiene sentido: el monitor publica una tupla con lo observado y el scoreboard calcula el resultado esperado al vuelo usando `model_predict()`.
+
+`uvm_scoreboard`, en cambio, es más apropiado cuando el scoreboard necesita tener arquitectura propia: varias entradas, FIFOs internas, modelos de referencia, matching por ID, comparación fuera de orden, acumulación temporal o lógica de reordenamiento. Si se hereda de `uvm_scoreboard`, normalmente se deben declarar explícitamente las entradas TLM que recibirán datos desde los monitores.
+
+La regla importante es:
+
+```text
+El monitor tiene el analysis_port.
+El scoreboard tiene el lado receptor: analysis_export, analysis_imp o analysis_fifo.
+El env conecta ambos en connect_phase().
+```
+
+No conviene decir que el scoreboard declara `analysis_port` para recibir. En UVM, el `analysis_port` vive en quien publica; el receptor tiene un export, imp o FIFO con `analysis_export`.
+
+### Por qué no comparar siempre dentro de `write()`
+
+Comparar dentro de `write()` es simple, pero tiene una limitación: `write()` se ejecuta en el instante en que llega una transaction desde un monitor. Si hay dos monitores, por ejemplo uno de entrada y otro de salida, cada llamada llega por separado. El scoreboard puede recibir primero una entrada, después una salida, o incluso varias entradas antes de la primera salida si el DUT tiene latencia.
+
+Con un scoreboard sencillo, uno suele escribir algo como:
+
+```text
+input_monitor.ap  -> scoreboard.write_input(txn)
+output_monitor.ap -> scoreboard.write_output(txn)
+```
+
+Internamente, el scoreboard mantiene colas o diccionarios:
+
+```python
+self.expected.append(expected_txn)
+self.actual.append(actual_txn)
+```
+
+Esto funciona, pero la lógica puede ensuciarse rápido. Además, si el emparejamiento depende solo del orden de llegada, una transaction espuria, un ciclo idle mal muestreado o una diferencia de latencia puede desalinear todo el scoreboard.
+
+Por eso aparece el patrón con FIFO de análisis.
+
+### El patrón observado: `uvm_tlm_analysis_fifo`
+
+El patrón que aparece en muchos testbenches más elaborados es este:
+
+```text
+monitor.ap
+   |
+   v
+scoreboard.<nombre>_fifo.analysis_export
+   |
+   v
+cola interna de transactions
+   |
+   v
+scoreboard.run_phase consume con get(), try_get() o peek()
+```
+
+La clase clave es `uvm_tlm_analysis_fifo`. Es una FIFO TLM especializada para recibir transactions desde un `analysis_port`. Combina dos mundos:
+
+- Por el lado de entrada, expone `analysis_export`, por lo que un monitor puede conectarse directamente con `monitor.ap.connect(fifo.analysis_export)`.
+- Por dentro, almacena cada transaction en una cola.
+- Por el lado de consumo, se comporta como FIFO: permite `get()`, `try_get()`, `peek()`, `try_peek()` y consultas tipo `can_get()`/`can_peek()`.
+
+Esto convierte un broadcast no bloqueante de análisis en una fuente consumible por el scoreboard:
+
+```text
+analysis_port.write(txn) -> analysis_fifo.analysis_export -> FIFO interna -> scoreboard consume
+```
+
+Ejemplo conceptual:
+
+```python
+class RobustScoreboard(uvm_scoreboard):
+    def build_phase(self):
+        self.expected_fifo = uvm_tlm_analysis_fifo("expected_fifo", self)
+        self.actual_fifo = uvm_tlm_analysis_fifo("actual_fifo", self)
+        self.mismatches = []
+
+    async def run_phase(self):
+        while True:
+            expected = await self.expected_fifo.get()
+            actual = await self.actual_fifo.get()
+
+            if not self.compare(expected, actual):
+                self.mismatches.append((expected, actual))
+                self.logger.error(
+                    f"Mismatch: expected={expected}, actual={actual}"
+                )
+```
+
+Y en el environment:
+
+```python
+self.input_monitor.ap.connect(self.scoreboard.expected_fifo.analysis_export)
+self.output_monitor.ap.connect(self.scoreboard.actual_fifo.analysis_export)
+```
+
+El scoreboard deja de depender de que `write_input()` y `write_output()` hagan toda la lógica. Los monitores publican. Las FIFOs acumulan. El `run_phase()` del scoreboard decide cuándo hay suficiente información para comparar.
+
+### Utilidad de `uvm_tlm_analysis_fifo`
+
+`uvm_tlm_analysis_fifo` es útil cuando:
+
+- Hay múltiples monitores publicando streams distintos.
+- El DUT tiene latencia.
+- El producer y el consumer no avanzan al mismo ritmo.
+- El scoreboard debe esperar a tener una transaction esperada y una real.
+- Se quiere evitar lógica pesada dentro de `write()`.
+- Se necesita controlar el orden de consumo desde el `run_phase()` del scoreboard.
+- Se desea desacoplar observación y comparación.
+
+No significa que la sincronía desaparece. La sincronía se encapsula en la FIFO. Si el scoreboard hace `await fifo.get()` y no hay datos, solo se bloquea esa corrutina, no todo el entorno. Si se usa `try_get()`, el scoreboard puede preguntar sin bloquear.
+
+Comparación mental:
+
+```text
+Sin FIFO:
+Monitor llama write() y obliga al scoreboard a reaccionar inmediatamente.
+
+Con analysis FIFO:
+Monitor deposita transaction y sigue observando.
+Scoreboard consume cuando su algoritmo lo necesita.
+```
+
+### `uvm_tlm_fifo` vs `uvm_tlm_analysis_fifo`
+
+Ambas son FIFOs TLM, pero se usan en lugares distintos.
+
+`uvm_tlm_fifo` es la FIFO general de put/get:
+
+```text
+Producer.put_port -> fifo.put_export
+Consumer.get_port -> fifo.get_export
+```
+
+Ejemplo:
+
+```python
+self.fifo = uvm_tlm_fifo("fifo", self)
+self.producer.put_port.connect(self.fifo.put_export)
+self.consumer.get_port.connect(self.fifo.get_export)
+```
+
+Es ideal cuando los dos extremos son componentes activos que usan puertos TLM explícitos: uno hace `put()` y otro hace `get()`.
+
+`uvm_tlm_analysis_fifo` está pensada para el caso de monitores:
+
+```text
+Monitor.analysis_port -> fifo.analysis_export
+Scoreboard consume desde fifo
+```
+
+Ejemplo:
+
+```python
+self.actual_fifo = uvm_tlm_analysis_fifo("actual_fifo", self)
+self.monitor.ap.connect(self.scoreboard.actual_fifo.analysis_export)
+```
+
+La diferencia de intención es clara:
+
+```text
+uvm_tlm_fifo:
+  producer/consumer directo con put/get.
+
+uvm_tlm_analysis_fifo:
+  adaptador entre analysis_port.write(txn) y consumo tipo FIFO.
+```
+
+Para scoreboards conectados a monitores, `uvm_tlm_analysis_fifo` suele ser más natural que `uvm_tlm_fifo`, porque el monitor ya publica con `analysis_port.write(txn)`.
+
+### Utilidad de `uvm_nonblocking_get_port`
+
+El nombre correcto en pyuvm es `uvm_nonblocking_get_port`. Es común escribirlo mal como `uvm_nonoblocking_get_port`, pero ese nombre contiene un typo.
+
+Este puerto da acceso a métodos no bloqueantes de get:
+
+```python
+success, txn = self.get_port.try_get()
+can_get = self.get_port.can_get()
+```
+
+Su utilidad principal es permitir que un componente pregunte si hay datos disponibles sin quedarse suspendido esperando. Esto es diferente de:
+
+```python
+txn = await fifo.get()
+```
+
+`await fifo.get()` bloquea la corrutina hasta que exista una transaction. Eso puede ser correcto si el algoritmo realmente necesita esperar. Pero en scoreboards más complejos, muchas veces se quiere revisar varias fuentes y actuar solo cuando existe una combinación válida.
+
+Ejemplo conceptual:
+
+```python
+class MatchingScoreboard(uvm_scoreboard):
+    def build_phase(self):
+        self.actual_get_port = uvm_nonblocking_get_port("actual_get_port", self)
+        self.expected_get_port = uvm_nonblocking_get_port("expected_get_port", self)
+
+    def connect_phase(self):
+        self.actual_get_port.connect(self.actual_fifo.nonblocking_get_export)
+        self.expected_get_port.connect(self.expected_fifo.nonblocking_get_export)
+
+    async def run_phase(self):
+        while True:
+            got_exp, expected = self.expected_get_port.try_get()
+            got_act, actual = self.actual_get_port.try_get()
+
+            if got_exp and got_act:
+                self.compare(expected, actual)
+            else:
+                await Timer(1, units="ns")
+```
+
+La ventaja es que el scoreboard no queda atrapado obligatoriamente esperando una sola FIFO. Puede recorrer varias fuentes, priorizar canales, revisar timeouts, o implementar matching fuera de orden.
+
+Si el scoreboard posee directamente las FIFOs, no siempre hace falta declarar puertos no bloqueantes. En pyuvm también se puede llamar directamente:
+
+```python
+success, txn = self.actual_fifo.try_get()
+```
+
+Entonces, ¿por qué algunos patrones declaran `uvm_nonblocking_get_port`? Por arquitectura. El puerto desacopla el algoritmo consumidor del objeto FIFO concreto. El scoreboard puede tener lógica que consume desde un endpoint TLM sin saber si detrás hay una FIFO, un modelo, un canal o algún adaptador.
+
+### Utilidad de `uvm_nonblocking_peek_port`
+
+El nombre correcto es `uvm_nonblocking_peek_port`.
+
+`peek` permite mirar el próximo elemento sin removerlo de la FIFO. Su versión no bloqueante permite intentar mirar sin quedarse esperando:
+
+```python
+success, txn = self.peek_port.try_peek()
+can_peek = self.peek_port.can_peek()
+```
+
+Esto es útil cuando el scoreboard necesita inspeccionar una transaction antes de decidir si la consume. Por ejemplo:
+
+- Ver si el próximo item tiene el ID buscado.
+- Comparar timestamps antes de sacar el dato.
+- Evitar consumir un actual si todavía no existe su expected correspondiente.
+- Implementar matching fuera de orden.
+- Revisar cabeceras o tags sin alterar la cola.
+
+Ejemplo conceptual:
+
+```python
+class ReorderScoreboard(uvm_scoreboard):
+    def build_phase(self):
+        self.actual_peek_port = uvm_nonblocking_peek_port("actual_peek_port", self)
+        self.actual_get_port = uvm_nonblocking_get_port("actual_get_port", self)
+
+    def connect_phase(self):
+        self.actual_peek_port.connect(self.actual_fifo.nonblocking_peek_export)
+        self.actual_get_port.connect(self.actual_fifo.nonblocking_get_export)
+
+    async def run_phase(self):
+        while True:
+            can_see, actual = self.actual_peek_port.try_peek()
+
+            if can_see and self.expected_exists_for(actual.id):
+                ok, actual = self.actual_get_port.try_get()
+                if ok:
+                    expected = self.expected_by_id.pop(actual.id)
+                    self.compare(expected, actual)
+            else:
+                await Timer(1, units="ns")
+```
+
+La diferencia clave entre `get` y `peek` es:
+
+```text
+get  -> mira y remueve.
+peek -> mira sin remover.
+```
+
+Por eso `peek` es tan útil en scoreboards que no quieren destruir el orden de una cola hasta estar seguros de poder comparar.
+
+### Por qué algunos scoreboards declaran varios puertos alrededor de cada FIFO
+
+En ciertos diseños se ve que, por cada conexión con un monitor, el scoreboard declara una estructura con:
+
+- un `uvm_tlm_analysis_fifo`, para recibir y almacenar lo que publica el monitor;
+- un `uvm_nonblocking_get_port`, para intentar consumir sin bloquear;
+- un `uvm_nonblocking_peek_port`, para mirar sin consumir;
+- a veces también un puerto combinado tipo get/peek o exports renombrados para hacer el código más legible.
+
+Esto puede parecer redundante al principio, porque el FIFO ya expone métodos y exports internos. Pero el objetivo no siempre es necesidad técnica mínima; muchas veces es claridad arquitectónica.
+
+El patrón expresa una intención:
+
+```text
+analysis_fifo:
+  recibe desde el monitor.
+
+nonblocking_get_port:
+  consume cuando el algoritmo decide que puede remover.
+
+nonblocking_peek_port:
+  inspecciona sin modificar el estado de la cola.
+```
+
+Se puede imaginar como una pequeña interfaz de entrada del scoreboard:
+
+```text
+monitor.ap
+   |
+   v
+input_channel.analysis_fifo.analysis_export
+   |
+   +--> input_channel.peek_port.try_peek()  # mirar sin sacar
+   |
+   +--> input_channel.get_port.try_get()    # sacar cuando corresponde
+```
+
+Una forma conceptual de encapsularlo sería:
+
+```python
+class ScoreboardInput:
+    def __init__(self, name, parent):
+        self.fifo = uvm_tlm_analysis_fifo(f"{name}_fifo", parent)
+        self.get_port = uvm_nonblocking_get_port(f"{name}_get_port", parent)
+        self.peek_port = uvm_nonblocking_peek_port(f"{name}_peek_port", parent)
+
+    def connect_phase(self):
+        self.get_port.connect(self.fifo.get_export)
+        self.peek_port.connect(self.fifo.peek_export)
+```
+
+No es redundante que el puerto sea no bloqueante y que se conecte contra `get_export` o `peek_export`. El tipo del puerto (`uvm_nonblocking_get_port` o `uvm_nonblocking_peek_port`) ya restringe la intención del acceso: usar `try_get()`/`can_get()` o `try_peek()`/`can_peek()`. En pyuvm, `get_export` y `peek_export` son exports compuestos que exponen la interfaz correspondiente. Por eso conectar de esta forma mantiene el código limpio y evita sobredocumentar la misma idea con nombres demasiado largos como `nonblocking_get_export`, salvo que se quiera ser extremadamente explícito por estilo de equipo.
+
+Luego el environment conecta el monitor al FIFO:
+
+```python
+self.input_monitor.ap.connect(self.scoreboard.input_channel.fifo.analysis_export)
+self.output_monitor.ap.connect(self.scoreboard.output_channel.fifo.analysis_export)
+```
+
+Y el scoreboard usa nombres semánticos:
+
+```python
+ok, actual = self.output_channel.peek_port.try_peek()
+if ok and self.can_match(actual):
+    ok, actual = self.output_channel.get_port.try_get()
+```
+
+La ganancia es que el scoreboard deja de pensar en detalles de almacenamiento y empieza a hablar en términos del algoritmo de verificación: mirar, decidir, consumir, comparar.
+
+### Ejemplo de Nivel 3: `AvancedScoreboard` parametrizable
+
+Una forma práctica y reusable de llevar este patrón al código es construir una clase base que reciba una lista de nombres de puertos lógicos. Cada nombre representa una entrada del scoreboard: `input`, `output`, `expected`, `actual`, `read`, `write`, `channel0`, etc. A partir de esos nombres, el scoreboard crea automáticamente tres estructuras por entrada:
+
+- un `uvm_tlm_analysis_fifo`, que recibe transactions desde el monitor;
+- un `uvm_nonblocking_get_port`, que consume transactions sin bloquear;
+- un `uvm_nonblocking_peek_port`, que mira la próxima transaction sin removerla.
+
+El modelo queda así:
+
+```python
+from pyuvm import *
+
+
+class AvancedScoreboard(uvm_scoreboard):
+    def __init__(self, name, parent, port_names: list[str]):
+        super().__init__(name, parent)
+        self.port_names = port_names
+
+    def build_phase(self):
+        port_names = self.port_names
+
+        self.fifos = {
+            p: uvm_tlm_analysis_fifo(f"{p}_fifo", self)
+            for p in port_names
+        }
+
+        self.get_ports = {
+            p: uvm_nonblocking_get_port(f"{p}_port", self)
+            for p in port_names
+        }
+
+        self.peek_ports = {
+            p: uvm_nonblocking_peek_port(f"{p}_peek_port", self)
+            for p in port_names
+        }
+
+    def connect_phase(self):
+        for p in self.port_names:
+            self.get_ports[p].connect(self.fifos[p].get_export)
+            self.peek_ports[p].connect(self.fifos[p].peek_export)
+```
+
+Este diseño encaja muy bien con la conclusión anterior porque separa explícitamente las tres responsabilidades de cada entrada:
+
+```text
+fifos[p]
+  recibe y almacena lo que publica el monitor.
+
+get_ports[p]
+  remueve una transaction solo cuando el algoritmo quiere consumirla.
+
+peek_ports[p]
+  inspecciona la próxima transaction sin modificar la cola.
+```
+
+La conexión desde el environment queda limpia y semántica:
+
+```python
+self.input_monitor.ap.connect(self.scoreboard.fifos["input"].analysis_export)
+self.output_monitor.ap.connect(self.scoreboard.fifos["output"].analysis_export)
+```
+
+Luego una clase concreta puede heredar de `BaseScoreboard` y concentrarse solo en la política de comparación:
+
+```python
+class InterfaceScoreboard(BaseScoreboard):
+    def __init__(self, name, parent):
+        super().__init__(name, parent, ["expected", "actual"])
+        self.mismatches = []
+
+    async def run_phase(self):
+        while True:
+            has_exp, expected = self.peek_ports["expected"].try_peek()
+            has_act, actual = self.peek_ports["actual"].try_peek()
+
+            if has_exp and has_act and self.can_compare(expected, actual):
+                _, expected = self.get_ports["expected"].try_get()
+                _, actual = self.get_ports["actual"].try_get()
+                self.compare(expected, actual)
+            else:
+                await Timer(1, units="ns")
+```
+
+La ventaja de mirar primero con `peek` es que el scoreboard no destruye el orden de ninguna FIFO hasta saber que puede comparar. Si todavía no existe la pareja correspondiente, la transaction permanece almacenada y puede ser revisada de nuevo en otro ciclo del algoritmo.
+
+Este patrón da muy buen resultado porque transforma el scoreboard en una pieza reusable. La estructura de entrada se define con nombres; la política de matching vive en la clase hija. Así se evita reescribir boilerplate cada vez que aparece un nuevo monitor o una nueva stream de verificación.
+
+### Cuando usar este patrón y cuando no
+
+Para ejemplos simples del módulo, el patrón con `uvm_subscriber` es suficiente y más fácil de leer:
+
+```text
+Monitor.ap -> Scoreboard.analysis_export -> write(txn)
+```
+
+Conviene cuando:
+
+- hay un solo stream;
+- la comparación es inmediata;
+- no hay latencia variable;
+- no hay reordenamiento;
+- el objetivo es enseñar el camino básico del `analysis_port`.
+
+Para scoreboards más serios, el patrón con `uvm_scoreboard + uvm_tlm_analysis_fifo` es más robusto:
+
+```text
+input_monitor.ap  -> expected_fifo.analysis_export
+output_monitor.ap -> actual_fifo.analysis_export
+
+scoreboard.run_phase:
+    expected = await expected_fifo.get()
+    actual   = await actual_fifo.get()
+    compare(expected, actual)
+```
+
+Y si además se necesitan decisiones no bloqueantes:
+
+```text
+try_peek() -> miro sin sacar
+try_get()  -> saco solo cuando puedo comparar
+```
+
+Conviene cuando:
+
+- hay múltiples monitores;
+- el DUT tiene latencia;
+- las respuestas pueden llegar fuera de orden;
+- se necesita matching por ID, timestamp o ciclo;
+- se deben revisar timeouts;
+- no se quiere bloquear esperando una sola fuente;
+- se quiere separar recepción, almacenamiento y comparación.
+
+### Conclusión práctica
+
+La arquitectura más limpia depende de la escala del problema:
+
+```text
+Nivel 1 - Scoreboard simple:
+Monitor.ap -> uvm_subscriber.analysis_export -> write(txn)
+
+Nivel 2 - Scoreboard con buffering:
+Monitor.ap -> uvm_tlm_analysis_fifo.analysis_export
+Scoreboard consume con get() / try_get()
+
+Nivel 3 - Scoreboard avanzado:
+Monitor.ap -> analysis_fifo
+Scoreboard usa nonblocking_get_port y nonblocking_peek_port
+Matching por ID, tiempo, orden parcial o modelo de referencia.
+```
+
+No hay que usar FIFO TLM para absolutamente todo. Pero cuando aparece la necesidad de desacoplar tiempos, comparar múltiples fuentes o evitar que `write()` haga demasiado trabajo, el patrón con `uvm_tlm_analysis_fifo` es una de las soluciones más sensatas.
+
+La idea final es no confundir simplicidad con robustez. `uvm_subscriber` es ideal para aprender y para scoreboards pequeños. `uvm_scoreboard` con FIFOs de análisis es mejor cuando la verificación empieza a parecerse a un sistema real: monitores independientes, latencias variables, comparaciones complejas y necesidad de controlar explícitamente cuándo una transaction se mira, se consume y se compara.

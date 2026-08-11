@@ -616,3 +616,150 @@ ConfigurationTest.build_phase()
 - Desde un componente, usa `ConfigDB().get(self, "", "key", default)` para leer su propia configuración.
 - Si querés acceder luego como atributo Python (`self.env.config`), asigna explícitamente `self.config = env_config`.
 - Recuerda que `ConfigDB().get()` devuelve el valor; no modifica una variable pasada como cuarto argumento.
+
+### Configurar desde el test
+
+El test también puede configurar componentes inferiores porque está arriba en la jerarquía. La regla importante es hacer el `set()` antes de crear el environment, para que el agent/driver encuentre el valor cuando ejecute su `build_phase()`.
+
+```python
+class MyTest(uvm_test):
+    def build_phase(self):
+        ConfigDB().set(self, "env.agent", "active", True)
+        ConfigDB().set(self, "env.agent.driver", "drive_delay_ns", 20)
+
+        self.env = MyEnv("env", self)
+```
+
+Y el componente configurado lee su propia key:
+
+```python
+class MyDriver(uvm_driver):
+    def build_phase(self):
+        self.drive_delay_ns = ConfigDB().get(self, "", "drive_delay_ns", 10)
+```
+
+Idea práctica: el test decide la configuración; el componente solo la consume. Evita usar `ConfigDB().set(None, "*", ...)` salvo que realmente quieras afectar a muchos componentes.
+
+## Callbacks
+
+### Idea central
+
+El ejemplo replica manualmente el patrón de callbacks de SystemVerilog/UVM. En UVM SV existen `uvm_callback` y macros para registrar/ejecutar callbacks; en pyuvm no hay ese mecanismo por default, así que se implementa con una lista de callbacks dentro del componente y llamadas explícitas.
+
+La utilidad es agregar comportamiento antes o después de una acción del driver/monitor sin modificar la lógica base del componente.
+
+### Driver callbacks
+
+| Clase | Rol |
+|---|---|
+| `DriverCallback` | Clase base. Define los hooks `pre_drive()` y `post_drive()`. Por default no modifica nada. |
+| `LoggingDriverCallback` | Callback de observación. Solo imprime logs antes/después del drive. |
+| `ModifyDataCallback` | Callback activo. Modifica `txn.data` antes de que el driver lo mande al DUT. |
+| `DriverWithCallbacks` | Driver real. Guarda callbacks en `self.callbacks` y los ejecuta en `run_phase()`. |
+
+Flujo principal del driver:
+
+```python
+item = await self.seq_item_port.get_next_item()
+
+for callback in self.callbacks:
+    item = callback.pre_drive(self, item)
+
+# aquí iría el drive real al DUT
+self.logger.info(f"Driving: {item}")
+
+for callback in self.callbacks:
+    callback.post_drive(self, item)
+
+self.seq_item_port.item_done()
+```
+
+`pre_drive()` ocurre antes del drive real. Por eso puede transformar la transacción que vino desde la sequence/sequencer. En el ejemplo, `ModifyDataCallback` suma `0x10` a `txn.data`.
+
+`post_drive()` ocurre después del drive. Sirve para logging, estadísticas, checks livianos o acciones posteriores al envío.
+
+### Monitor callbacks
+
+| Clase | Rol |
+|---|---|
+| `MonitorCallback` | Clase base. Define `pre_sample()` y `post_sample()`. |
+| `LoggingMonitorCallback` | Loguea la transacción muestreada. |
+| `FilterMonitorCallback` | Transforma el dato observado antes de publicarlo por el analysis port. |
+| `MonitorWithCallbacks` | Monitor que ejecuta callbacks antes/después de publicar la transacción. |
+
+Flujo principal del monitor:
+
+```python
+txn = DriverTransaction()
+txn.data = 0xAA
+
+for callback in self.callbacks:
+    txn = callback.pre_sample(self, txn)
+
+self.ap.write(txn)
+
+for callback in self.callbacks:
+    callback.post_sample(self, txn)
+```
+
+### Registro manual
+
+En vez de hacer un registro tipo UVM SV:
+
+```systemverilog
+uvm_callbacks#(driver_type, callback_type)::add(driver, cb);
+```
+
+en pyuvm se hace explícitamente:
+
+```python
+self.driver.add_callback(driver_log_cb)
+self.driver.add_callback(driver_modify_cb)
+```
+
+El orden de registro importa: los callbacks se ejecutan en el mismo orden en que fueron agregados.
+
+### Equivalencia mental
+
+```systemverilog
+// UVM SV
+`uvm_do_callbacks(driver_type, callback_type, pre_drive(this, txn))
+```
+
+equivale a:
+
+```python
+# pyuvm manual
+for callback in self.callbacks:
+    txn = callback.pre_drive(self, txn)
+```
+
+### Nota sobre logger
+
+Los `uvm_component` de pyuvm normalmente tienen `self.logger`. Los callbacks del ejemplo heredan de `uvm_object`, no son componentes de la jerarquía UVM. Por eso es más seguro loguear usando el contexto del componente que ejecuta el callback:
+
+```python
+driver.logger.info(...)
+monitor.logger.info(...)
+```
+
+Así el mensaje queda asociado al driver o monitor que está usando el callback.
+
+### Registrar desde el test
+
+El test también puede registrar callbacks porque está en una capa superior y ya conoce el environment. Esto es útil cuando distintos tests quieren activar distintos comportamientos sin tocar el agent.
+
+```python
+class CallbackTest(uvm_test):
+    def build_phase(self):
+        self.env = CallbackEnv("env", self)
+
+    def end_of_elaboration_phase(self):
+        log_cb = LoggingDriverCallback("driver_log_cb")
+        modify_cb = ModifyDataCallback("driver_modify_cb")
+
+        self.env.agent.driver.add_callback(log_cb)
+        self.env.agent.driver.add_callback(modify_cb)
+```
+
+Reparto recomendado: el agent define que el driver soporta callbacks; el test decide cuáles callbacks se usan en cada escenario.

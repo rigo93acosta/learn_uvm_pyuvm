@@ -92,10 +92,8 @@ class ConfigurableAgent(uvm_agent):
         self.logger.info(f"[{self.get_name()}] Building configurable agent")
         
         # Get configuration from ConfigDB
-        config = None
-        success = ConfigDB().get(None, "", f"{self.get_full_name()}.config", config)
-        
-        if success and config is not None:
+        config = ConfigDB().get(self, "", "config")
+        if config:
             self.logger.info(f"[{self.get_name()}] Got config: {config}")
             self.config = config
         else:
@@ -133,15 +131,16 @@ class ConfigurableEnv(uvm_env):
             self.logger.error("Environment configuration validation failed")
         
         # Set configuration in ConfigDB
-        ConfigDB().set(None, "", "env.config", env_config)
-        ConfigDB().set(None, "", "env.master_agent.config", env_config.master_config)
-        ConfigDB().set(None, "", "env.slave_agent.config", env_config.slave_config)
+        ConfigDB().set(self, "", "config", env_config)
+        ConfigDB().set(self, "master_agent", "config", env_config.master_config)
+        ConfigDB().set(self, "slave_agent", "config", env_config.slave_config)
         
         self.logger.info(f"Set environment configuration: {env_config}")
         
         # Create agents (will get config from ConfigDB)
-        self.master_agent = ConfigurableAgent.create("master_agent", self)
-        self.slave_agent = ConfigurableAgent.create("slave_agent", self)
+        self.master_agent = ConfigurableAgent("master_agent", self)
+        self.slave_agent = ConfigurableAgent("slave_agent", self)
+        self.config = env_config  # Store for reporting
     
     def connect_phase(self):
         """Connect phase."""
@@ -169,7 +168,7 @@ class ConfigurationTest(uvm_test):
         self.logger.info(f"  Master agent config: {self.env.master_agent.config}")
         self.logger.info(f"  Slave agent config: {self.env.slave_agent.config}")
         
-        await Timer(10, unitss="ns")
+        await Timer(10, units="ns")
         self.drop_objection()
     
     def report_phase(self):

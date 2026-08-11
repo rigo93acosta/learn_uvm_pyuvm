@@ -341,9 +341,278 @@ def write(self, txn):
 
 ## Object Configuration
 
-Crear configuración compleja de forma centralizada y jerárquica, sin tener que pasar referencias a mano entre componentes. El patrón es:
-- Un **objeto de configuración** (`ConfigObject`) que contiene todos los parámetros relevantes para un componente (por ejemplo, un agente).  
-- Un **componente configurable** (`ConfigurableComponent`) que declara un atributo `config` y lo inicializa en `None`.  
-- Un **env** que crea los objetos de configuración y los asigna a los componentes en `connect_phase()`.  
-- Un **test** que crea el env y arranca la simulación, sin tener que pasar referencias a mano entre los componentes.    
+Crear configuración compleja de forma centralizada y jerárquica, sin tener que pasar referencias a mano entre componentes. En este ejemplo, el `EnvConfig` contiene la configuración global del environment y, dentro de él, dos objetos `AgentConfig`: uno para `master_agent` y otro para `slave_agent`.
 
+### Objetos de configuración
+
+El patrón básico es separar los parámetros configurables del componente que los usa:
+
+| Objeto | Rol |
+|---|---|
+| `AgentConfig` | Configuración de un agent: `active`, `has_coverage`, `address_width`, `data_width`, `max_outstanding`. |
+| `EnvConfig` | Configuración del environment: `num_agents`, `master_config`, `slave_config`, `enable_scoreboard`, `enable_coverage`. |
+| `ConfigurableAgent` | Lee su `AgentConfig` desde `ConfigDB` en `build_phase()`. |
+| `ConfigurableEnv` | Crea el `EnvConfig`, ajusta los campos y publica las configs en `ConfigDB` antes de crear los agents. |
+
+La idea es que el agent no tenga que saber quién creó su configuración. Solo conoce una key lógica, por ejemplo `config`.
+
+### Firma real de `ConfigDB`
+
+En pyuvm, `ConfigDB` se usa así:
+
+```python
+ConfigDB().set(context, inst_name, field_name, value)
+ConfigDB().get(context, inst_name, field_name, default)
+```
+
+Los argumentos no significan lo mismo que un string tipo `"env.master_agent.config"` armado a mano:
+
+| Argumento | Significado |
+|---|---|
+| `context` | Componente desde donde se resuelve el path. Si es `None`, pyuvm usa el root. |
+| `inst_name` | Instancia relativa al `context`. Si es `""`, se usa el full name del `context`. |
+| `field_name` | Nombre de la key de configuración, por ejemplo `"config"`. No debe incluir el path. |
+| `value` / `default` | Objeto a guardar, o valor por defecto si el `get()` no encuentra nada. |
+
+Por dentro pyuvm forma el path así:
+
+```python
+if context is None:
+    context = uvm_root()
+
+if inst_name is None or inst_name == "":
+    inst_name = context.get_full_name()
+elif context.get_full_name() != "":
+    inst_name = context.get_full_name() + "." + inst_name
+```
+
+Entonces, si `self` es el environment `uvm_test_top.env`:
+
+```python
+ConfigDB().set(self, "master_agent", "config", master_cfg)
+```
+
+guarda bajo:
+
+```text
+uvm_test_top.env.master_agent / config
+```
+
+Y si el agent `uvm_test_top.env.master_agent` hace:
+
+```python
+ConfigDB().get(self, "", "config", None)
+```
+
+busca exactamente:
+
+```text
+uvm_test_top.env.master_agent / config
+```
+
+### Error típico: usar el path como `field_name`
+
+Esto parece natural, pero está mal:
+
+```python
+ConfigDB().set(None, "", "env.master_agent.config", cfg)
+```
+
+Ahí `"env.master_agent.config"` no es interpretado como path. pyuvm lo toma como el `field_name`, o sea como una key literal llamada `env.master_agent.config`, guardada en el path del root.
+
+Después, si el agent hace:
+
+```python
+ConfigDB().get(self, "", "config")
+```
+
+busca una key llamada `config` en `uvm_test_top.env.master_agent`, por lo que no encuentra nada.
+
+### Error típico: usar `None` como contexto cuando se quería relativo al env
+
+Otro bug común:
+
+```python
+ConfigDB().set(None, "master_agent", "config", master_cfg)
+```
+
+Eso guarda en:
+
+```text
+master_agent / config
+```
+
+Pero el agent real se llama:
+
+```text
+uvm_test_top.env.master_agent
+```
+
+Entonces este lookup falla:
+
+```python
+ConfigDB().get(self, "", "config")
+```
+
+con un error como:
+
+```text
+pyuvm.error_classes.UVMConfigItemNotFound: "uvm_test_top.env.master_agent" is not in ConfigDB().
+```
+
+La solución es usar el env (`self` dentro de `ConfigurableEnv`) como contexto:
+
+```python
+ConfigDB().set(self, "master_agent", "config", env_config.master_config)
+ConfigDB().set(self, "slave_agent", "config", env_config.slave_config)
+```
+
+### Error típico: `get()` no actualiza variables por referencia
+
+Este patrón viene de SystemVerilog/UVM, pero no aplica igual en Python:
+
+```python
+config = None
+success = ConfigDB().get(None, "", "some.path.config", config)
+```
+
+En Python, `config` no se actualiza por referencia. Además, en pyuvm `get()` devuelve directamente el valor encontrado. El cuarto argumento es un `default`, no una variable de salida.
+
+Uso correcto:
+
+```python
+config = ConfigDB().get(self, "", "config", None)
+```
+
+Si la config existe, `config` queda apuntando al objeto encontrado. Si no existe, devuelve `None` por el default.
+
+### Patrón correcto en el env
+
+El environment crea la configuración global, ajusta los campos y luego publica cada config antes de crear los agentes:
+
+```python
+class ConfigurableEnv(uvm_env):
+    def build_phase(self):
+        env_config = EnvConfig("env_config")
+        env_config.num_agents = 2
+        env_config.master_config.active = True
+        env_config.master_config.has_coverage = True
+        env_config.slave_config.active = False
+        env_config.slave_config.has_coverage = False
+
+        if not env_config.validate():
+            self.logger.error("Environment configuration validation failed")
+
+        self.config = env_config
+
+        ConfigDB().set(self, "", "config", env_config)
+        ConfigDB().set(self, "master_agent", "config", env_config.master_config)
+        ConfigDB().set(self, "slave_agent", "config", env_config.slave_config)
+
+        self.master_agent = ConfigurableAgent("master_agent", self)
+        self.slave_agent = ConfigurableAgent("slave_agent", self)
+```
+
+Puntos importantes:
+
+- `ConfigDB().set(self, "", "config", env_config)` guarda la config del propio env bajo `uvm_test_top.env / config`.
+- `ConfigDB().set(self, "master_agent", "config", ...)` guarda la config del master bajo `uvm_test_top.env.master_agent / config`.
+- `ConfigDB().set(self, "slave_agent", "config", ...)` guarda la config del slave bajo `uvm_test_top.env.slave_agent / config`.
+- `self.config = env_config` no tiene que ver con `ConfigDB`: es un atributo normal de Python para poder acceder luego con `self.env.config` desde el test.
+
+### Patrón correcto en el agent
+
+El agent pide su propia config usando `self` como contexto y `""` como `inst_name`:
+
+```python
+class ConfigurableAgent(uvm_agent):
+    def build_phase(self):
+        config = ConfigDB().get(self, "", "config", None)
+
+        if config is not None:
+            self.logger.info(f"[{self.get_name()}] Got config: {config}")
+            self.config = config
+        else:
+            self.logger.warning(f"[{self.get_name()}] No config found, using defaults")
+            self.config = AgentConfig()
+
+        if not self.config.validate():
+            self.logger.error(f"[{self.get_name()}] Configuration validation failed")
+
+        if self.config.active:
+            self.logger.info(f"[{self.get_name()}] Agent is ACTIVE")
+        else:
+            self.logger.info(f"[{self.get_name()}] Agent is PASSIVE")
+```
+
+Usar `default=None` evita que pyuvm lance `UVMConfigItemNotFound` si la config no existe. Así el agent puede caer a defaults de forma controlada.
+
+### Por qué `self.env.config` daba `N/A`
+
+Esta línea del test:
+
+```python
+self.logger.info(f"  Environment config: {self.env.config if hasattr(self.env, 'config') else 'N/A'}")
+```
+
+devuelve `N/A` si el objeto `ConfigurableEnv` no tiene un atributo Python llamado `config`.
+
+Guardar algo en `ConfigDB` no crea automáticamente atributos en los componentes. Esto:
+
+```python
+ConfigDB().set(self, "", "config", env_config)
+```
+
+solo guarda el objeto en la base de datos. No hace esto:
+
+```python
+self.config = env_config
+```
+
+Por eso, si el test quiere imprimir `self.env.config`, el env debe asignarlo explícitamente:
+
+```python
+self.config = env_config
+```
+
+Si no se quiere guardar el atributo, entonces el test debería leer desde `ConfigDB`:
+
+```python
+env_config = ConfigDB().get(self.env, "", "config", None)
+```
+
+Pero para reportes simples, el atributo explícito `self.config = env_config` es más directo y legible.
+
+### Flujo resultante
+
+```text
+ConfigurationTest.build_phase()
+        │
+        └─ crea ConfigurableEnv("env", self)
+                  │
+                  ├─ ConfigurableEnv.build_phase()
+                  │      ├─ crea EnvConfig
+                  │      ├─ self.config = env_config
+                  │      ├─ ConfigDB.set(self, "", "config", env_config)
+                  │      ├─ ConfigDB.set(self, "master_agent", "config", master_config)
+                  │      ├─ ConfigDB.set(self, "slave_agent", "config", slave_config)
+                  │      ├─ crea master_agent
+                  │      └─ crea slave_agent
+                  │
+                  ├─ master_agent.build_phase()
+                  │      └─ ConfigDB.get(self, "", "config", None)
+                  │           busca uvm_test_top.env.master_agent / config
+                  │
+                  └─ slave_agent.build_phase()
+                         └─ ConfigDB.get(self, "", "config", None)
+                              busca uvm_test_top.env.slave_agent / config
+```
+
+### Reglas prácticas
+
+- No armes `"uvm_test_top.env.master_agent.config"` a mano salvo que tengas una razón concreta.
+- No metas el path completo en `field_name`; `field_name` debería ser algo simple como `"config"`, `"active"`, `"address_width"`.
+- Desde un env, usa `ConfigDB().set(self, "child_name", "key", value)` para configurar hijos directos.
+- Desde un componente, usa `ConfigDB().get(self, "", "key", default)` para leer su propia configuración.
+- Si querés acceder luego como atributo Python (`self.env.config`), asigna explícitamente `self.config = env_config`.
+- Recuerda que `ConfigDB().get()` devuelve el valor; no modifica una variable pasada como cuarto argumento.

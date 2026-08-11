@@ -8,7 +8,7 @@ import pyuvm
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, FallingEdge, ReadOnly, RisingEdge, Timer
 from pyuvm import *
-
+import logging
 
 class InterfaceTransaction(uvm_sequence_item):
     """Transaction for interface test."""
@@ -130,6 +130,7 @@ class InterfaceAgent(uvm_agent):
         self.driver = InterfaceDriver.create("driver", self)
         self.monitor = InterfaceMonitor.create("monitor", self)
         self.seqr = uvm_sequencer("sequencer", self)
+        ConfigDB().set(None, "*", "SEQR", self.seqr)
 
     def connect_phase(self):
         self.driver.seq_item_port.connect(self.seqr.seq_item_export)
@@ -137,6 +138,10 @@ class InterfaceAgent(uvm_agent):
 
 class InterfaceEnv(uvm_env):
     """Environment for interface test."""
+
+    def __init__(self, name, parent):
+        super().__init__(name, parent)
+        self.dut = cocotb.top
 
     def build_phase(self):
         self.logger.info("Building InterfaceEnv")
@@ -147,6 +152,28 @@ class InterfaceEnv(uvm_env):
         self.logger.info("Connecting InterfaceEnv")
         self.agent.monitor.ap.connect(self.scoreboard.analysis_export)
 
+    def end_of_elaboration_phase(self):
+        cocotb.start_soon(Clock(self.dut.clk, 10, units="ns").start())
+        super().end_of_elaboration_phase()
+
+
+class InterfaceTestSeq(uvm_sequence):
+    """Sequence for interface test."""
+
+    logger = logging.getLogger("InterfaceTestSeq")
+
+    async def body(self):
+        """Generate test vectors."""
+        self.seqr = ConfigDB().get(None, "", "SEQR")
+        self.dut = cocotb.top
+
+        self.logger.info("Running CompleteAgentTest")
+        await FallingEdge(self.dut.clk)
+        self.dut.rst_n.value = 0
+        await ClockCycles(self.dut.clk, 1)
+        self.dut.rst_n.value = 1
+        await ClockCycles(self.dut.clk, 1)
+        await InterfaceSequence("interface_seq").start(self.seqr)
 
 @pyuvm.test()
 class CompleteAgentTest(uvm_test):
@@ -159,21 +186,14 @@ class CompleteAgentTest(uvm_test):
         self.env = InterfaceEnv.create("env", self)
         self.dut = cocotb.top
 
+    def end_of_elaboration_phase(self):
+        self.sequence = InterfaceTestSeq("interface_test_seq")
+
     async def run_phase(self):
         self.raise_objection()
-        cocotb.start_soon(Clock(self.dut.clk, 10, units="ns").start())
-
         self.logger.info("Running CompleteAgentTest")
-        await FallingEdge(self.dut.clk)
-        self.dut.rst_n.value = 0
-        await ClockCycles(self.dut.clk, 1)
-        self.dut.rst_n.value = 1
-        await ClockCycles(self.dut.clk, 1)
-        # Note: Sequence starting has issues in current pyuvm implementation
-        seq = InterfaceSequence.create("seq")
-        await seq.start(self.env.agent.seqr)
-
-        await Timer(100, units="ns")
+        await self.sequence.start()
+        await Timer(5, units="ns")
         self.drop_objection()
 
     def check_phase(self):

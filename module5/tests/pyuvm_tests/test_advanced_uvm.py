@@ -3,182 +3,381 @@ Module 5 Test: Advanced UVM Test
 Complete testbench demonstrating advanced UVM concepts.
 """
 
+from dataclasses import dataclass
+import random
+
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import Timer, RisingEdge
+from cocotb.triggers import Timer, RisingEdge, FallingEdge, ReadOnly, ClockCycles
 from pyuvm import *
-
-# In pyuvm, use uvm_seq_item_port instead of uvm_seq_item_pull_port
-# uvm_seq_item_port is available from pyuvm import * and works the same way
-# Create an alias for compatibility with code that expects uvm_seq_item_pull_port
-try:
-    # Check if uvm_seq_item_pull_port is available (for backward compatibility)
-    uvm_seq_item_pull_port  # type: ignore
-except NameError:
-    # Use uvm_seq_item_port as it's the correct class in pyuvm
-    uvm_seq_item_pull_port = uvm_seq_item_port
-
-# Also create alias for uvm_analysis_imp if not available
-try:
-    uvm_analysis_imp  # type: ignore
-except NameError:
-    # Try to find the correct analysis implementation class
-    try:
-        from pyuvm.s12_uvm_tlm_interfaces import uvm_analysis_imp_decl
-        uvm_analysis_imp = uvm_analysis_imp_decl
-    except ImportError:
-        # If not found, try uvm_analysis_export which can implement write
-        try:
-            uvm_analysis_imp = uvm_analysis_export
-        except NameError:
-            # Last resort - use uvm_analysis_port (won't work but won't crash)
-            uvm_analysis_imp = uvm_analysis_port
+import pyuvm
+import logging
 
 
 class AdvancedTransaction(uvm_sequence_item):
     """Transaction for advanced UVM test."""
-    
+
     def __init__(self, name="AdvancedTransaction"):
         super().__init__(name)
         self.data = 0
         self.channel = 0
-    
+
     def __str__(self):
         return f"data=0x{self.data:02X}, channel={self.channel}"
 
 
-class AdvancedSequence(uvm_sequence):
+class AdvancedMasterTransaction(AdvancedTransaction):
+    """Transaction for master channel."""
+
+    def __init__(self, name="AdvancedMasterTransaction"):
+        super().__init__(name)
+        self.valid = False
+
+    def __str__(self):
+        return f"MasterTransaction: data=0x{self.data:02X}, channel={self.channel}, valid={self.valid}"
+
+
+class AdvancedSlaveTransaction(AdvancedTransaction):
+    """Transaction for slave channel."""
+
+    def __init__(self, name="AdvancedSlaveTransaction"):
+        super().__init__(name)
+        self.valid = False
+
+    def __str__(self):
+        return f"SlaveTransaction: data=0x{self.data:02X}, channel={self.channel}, valid={self.valid}"
+
+
+class AdvancedSequenceMaster(uvm_sequence):
     """Sequence for advanced test."""
-    
+
+    def __init__(self, name="AdvancedSequenceMaster"):
+        super().__init__(name)
+        self.logger = logging.getLogger("AdvancedSequenceMaster")
+        self.logger.setLevel(logging.INFO)
+
     async def body(self):
         """Generate transactions."""
         for i in range(5):
-            txn = AdvancedTransaction()
+            txn = AdvancedMasterTransaction()
             txn.data = i * 0x10
             txn.channel = 0
+            txn.valid = True
+            await self.start_item(txn)
+            await self.finish_item(txn)
+
+
+class AdvancedSequenceSlave(uvm_sequence):
+    """Sequence for advanced test."""
+
+    def __init__(self, name="AdvancedSequenceSlave"):
+        super().__init__(name)
+        self.logger = logging.getLogger("AdvancedSequenceSlave")
+        self.logger.setLevel(logging.INFO)
+
+    async def body(self):
+        """Generate transactions."""
+        for i in range(5):
+            txn = AdvancedSlaveTransaction()
+            txn.data = i * 0x20
+            txn.channel = 1
+            txn.valid = True
             await self.start_item(txn)
             await self.finish_item(txn)
 
 
 class AdvancedDriver(uvm_driver):
     """Driver for advanced test."""
-    
+
     def build_phase(self):
-        # seq_item_port is already created by uvm_driver.__init__()
-        pass
-    
+        """seq_item_port is already created by uvm_driver.__init__()"""
+        self.dut = cocotb.top
+
     async def run_phase(self):
         while True:
             item = await self.seq_item_port.get_next_item()
-            print(f"Driving: {item}")
-            await Timer(10, units="ns")
+
+            await FallingEdge(self.dut.clk)
+
+            match item.channel:
+                case 0:
+                    self.dut.master_valid.value = item.valid
+                    self.dut.master_data.value = item.data
+                    self.logger.info(f"Driving: {item.data} to master_data")
+                case 1:
+                    self.dut.slave_valid.value = item.valid
+                    self.dut.slave_data.value = item.data
+                    self.logger.info(f"Driving: {item.data} to slave_data")
+                case _:
+                    self.logger.error(f"Unknown channel: {item.channel}")
+
+            await FallingEdge(self.dut.clk)
+
+            if item.channel == 0:
+                self.dut.master_valid.value = 0
+            elif item.channel == 1:
+                self.dut.slave_valid.value = 0
+
             self.seq_item_port.item_done()
+
+
+class AdvancedDriverMaster(AdvancedDriver):
+    """Driver for master channel."""
+
+    async def run_phase(self):
+        while True:
+            item = await self.seq_item_port.get_next_item()
+
+            await FallingEdge(self.dut.clk)
+
+            self.dut.master_valid.value = item.valid
+            self.dut.master_data.value = item.data
+            self.logger.info(f"Driving: {item.data} to master_data")
+
+            await FallingEdge(self.dut.clk)
+
+            self.dut.master_valid.value = 0
+
+            self.seq_item_port.item_done()
+
+
+class AdvancedDriverSlave(AdvancedDriver):
+    """Driver for slave channel."""
+
+    async def run_phase(self):
+        while True:
+            item = await self.seq_item_port.get_next_item()
+
+            await FallingEdge(self.dut.clk)
+
+            self.dut.slave_valid.value = item.valid
+            self.dut.slave_data.value = item.data
+            self.logger.info(f"Driving: {item.data} to slave_data")
+
+            await FallingEdge(self.dut.clk)
+
+            self.dut.slave_valid.value = 0
+
+            self.seq_item_port.item_done()
+
+
+@dataclass(kw_only=True)
+class AdvancedMonitorTransaction:
+    channel: int
+    data: int
+    valid: bool
+    slave_ready: bool
+    master_ready: bool
 
 
 class AdvancedMonitor(uvm_monitor):
     """Monitor for advanced test."""
-    
+
     def build_phase(self):
+        self.dut = cocotb.top
         self.ap = uvm_analysis_port("ap", self)
-    
+
     async def run_phase(self):
         while True:
-            await Timer(10, units="ns")
-            txn = AdvancedTransaction()
-            txn.data = 0xAA
-            txn.channel = 0
-            self.ap.write(txn)
+            await RisingEdge(self.dut.clk)
+            await ReadOnly()
+
+            if not self.dut.rst_n.value:
+                continue
+
+            master_valid = int(self.dut.master_valid.value)
+            master_ready = int(self.dut.master_ready.value)
+            salve_valid = int(self.dut.slave_valid.value)
+            slave_ready = int(self.dut.slave_ready.value)
+
+            if master_valid and master_ready:
+                txn = AdvancedMonitorTransaction(
+                    channel=0,
+                    data=int(self.dut.master_data.value),
+                    valid=True,
+                    slave_ready=slave_ready,
+                    master_ready=master_ready,
+                )
+                self.ap.write(txn)
+            elif salve_valid and slave_ready:
+                txn = AdvancedMonitorTransaction(
+                    channel=1,
+                    data=int(self.dut.slave_data.value),
+                    valid=True,
+                    slave_ready=slave_ready,
+                    master_ready=master_ready,
+                )
+                self.ap.write(txn)
+
+
+@dataclass(kw_only=True)
+class AdvancedCoverageData:
+    slave_ready: int = 0
+    master_ready: int = 0
+    slave_data: list[int] = None
+    master_data: list[int] = None
+
+    def __str__(self) -> str:
+        return (
+            f"\n\nSlave Coverage: {self.slave_ready} transactions, Data: {self.slave_data}\n\n"
+            f"\n\nMaster Coverage: {self.master_ready} transactions, Data: {self.master_data}\n\n"
+        )
 
 
 class AdvancedCoverage(uvm_subscriber):
     """Coverage for advanced test."""
-    
+
     def __init__(self, name="AdvancedCoverage", parent=None):
         super().__init__(name, parent)
-        self.coverage_data = {}
-    
+        self.coverage_data = AdvancedCoverageData(slave_data=[], master_data=[])
+
     def build_phase(self):
         """Build phase - uvm_subscriber already provides analysis export."""
-        # uvm_subscriber automatically creates analysis_export, no need to create manually
         pass
-    
+
     def write(self, txn):
         """Sample coverage."""
-        if txn.data not in self.coverage_data:
-            self.coverage_data[txn.data] = 0
-        self.coverage_data[txn.data] += 1
-        print(f"Coverage sampled: {txn}, unique values: {len(self.coverage_data)}")
+        if txn.slave_ready:
+            self.coverage_data.slave_data.append(txn.data)
+            self.coverage_data.slave_ready += 1
+        if txn.master_ready:
+            self.coverage_data.master_data.append(txn.data)
+            self.coverage_data.master_ready += 1
+
+    def report_phase(self):
+        """Report coverage results."""
+        self.logger.info("Coverage Report:")
+        self.logger.info("=" * 60)
+        self.logger.info(f"Total Slave Transactions: {self.coverage_data}")
+        # self.logger.info(f"Slave Coverage: {self.coverage_data.slave_ready} transactions, Data: {self.coverage_data.slave_data}")
+        # self.logger.info(f"Master Coverage: {self.coverage_data.master_ready} transactions, Data: {self.coverage_data.master_data}")
 
 
 class AdvancedAgent(uvm_agent):
     """Agent for advanced test."""
-    
+
     def build_phase(self):
-        self.driver = AdvancedDriver.create("driver", self)
-        self.monitor = AdvancedMonitor.create("monitor", self)
+        self.driver = AdvancedDriver("driver", self)
+        self.driver_master = AdvancedDriverMaster("driver_master", self)
+        self.driver_slave = AdvancedDriverSlave("driver_slave", self)
+
+        self.monitor = AdvancedMonitor("monitor", self)
         self.seqr = uvm_sequencer("sequencer", self)
-    
+        self.seqr_master = uvm_sequencer("sequencer_master", self)
+        self.seqr_slave = uvm_sequencer("sequencer_slave", self)
+
+        ConfigDB().set(None, "*", "seqr", self.seqr)
+        ConfigDB().set(None, "*", "seqr_master", self.seqr_master)
+        ConfigDB().set(None, "*", "seqr_slave", self.seqr_slave)
+
     def connect_phase(self):
         self.driver.seq_item_port.connect(self.seqr.seq_item_export)
+        self.driver_master.seq_item_port.connect(self.seqr_master.seq_item_export)
+        self.driver_slave.seq_item_port.connect(self.seqr_slave.seq_item_export)
+        
 
 
 class AdvancedEnv(uvm_env):
     """Environment for advanced test."""
-    
+
     def build_phase(self):
-        print("Building AdvancedEnv")
+        self.logger.info("Building AdvancedEnv")
         self.agent = AdvancedAgent.create("agent", self)
         self.coverage = AdvancedCoverage.create("coverage", self)
-    
+        self.dut = cocotb.top
+
     def connect_phase(self):
-        print("Connecting AdvancedEnv")
+        self.logger.info("Connecting AdvancedEnv")
         self.agent.monitor.ap.connect(self.coverage.analysis_export)
 
+    def end_of_elaboration_phase(self):
+        self.logger.info("End of elaboration phase for AdvancedEnv")
+        cocotb.fork(Clock(self.dut.clk, 10, units="ns").start())
 
-# Note: @uvm_test() decorator removed to avoid import-time TypeError
-# Using cocotb test wrapper instead for compatibility with cocotb test discovery
+
+class ResetSeq(uvm_sequence):
+    """Reset sequence for advanced test."""
+
+    async def body(self):
+        self.dut = cocotb.top
+        self.dut.rst_n.value = 0
+        await Timer(20, units="ns")
+        self.dut.rst_n.value = 1
+        await Timer(20, units="ns")
+
+
+class AdvancedTestSeq(uvm_sequence):
+    """Sequence for advanced test."""
+
+    logger = logging.getLogger("AdvancedTestSeq")
+
+    async def body(self):
+        self.seqr = ConfigDB().get(None, "", "seqr")
+        self.seqr_master = ConfigDB().get(None, "", "seqr_master")
+        self.seqr_slave = ConfigDB().get(None, "", "seqr_slave")
+        self.dut = cocotb.top
+
+        await ResetSeq().start(self.seqr)
+
+        self.logger.setLevel(logging.INFO)
+        dut_ports = [obj._name for obj in self.dut]
+        self.logger.info(f"DUT: {dut_ports}")
+
+        # Start master and slave sequences concurrently
+        # False Parallel execution of sequences
+        # master_seq = AdvancedSequenceMaster()
+        # slave_seq = AdvancedSequenceSlave()
+
+        # master_task = cocotb.start_soon(master_seq.start(self.seqr))
+        # slave_task = cocotb.start_soon(slave_seq.start(self.seqr))
+
+        # await master_task
+        # await slave_task
+
+        # Sequential execution of sequences 
+        # await AdvancedSequenceMaster().start(self.seqr)
+        # await AdvancedSequenceSlave().start(self.seqr)
+
+
+        # Parallel execution of sequences 
+        master_seq = AdvancedSequenceMaster()
+        slave_seq = AdvancedSequenceSlave()
+
+        master_task = cocotb.start_soon(master_seq.start(self.seqr_master))
+        slave_task = cocotb.start_soon(slave_seq.start(self.seqr_slave))
+
+        await master_task
+        await slave_task
+
+        await Timer(5, units="ns")
+
+
+@pyuvm.test()
 class AdvancedUVMTest(uvm_test):
     """Test class for advanced UVM."""
-    
+
     def build_phase(self):
-        print("=" * 60)
-        print("Building AdvancedUVMTest")
-        print("=" * 60)
-        self.env = AdvancedEnv.create("env", self)
-    
+        self.logger.info("=" * 60)
+        self.logger.info("Building AdvancedUVMTest")
+        self.logger.info("=" * 60)
+        self.env = AdvancedEnv("env", self)
+
+    def end_of_elaboration_phase(self):
+        super().end_of_elaboration_phase()
+        self.sequencer = AdvancedTestSeq("sequencer")
+
     async def run_phase(self):
         self.raise_objection()
-        print("Running AdvancedUVMTest")
-        
+        self.logger.info("Running AdvancedUVMTest")
+
         # Start sequence
-        seq = AdvancedSequence.create("seq")
-        await seq.start(self.env.agent.seqr)
-        
-        await Timer(100, units="ns")
+        await self.sequencer.start()
         self.drop_objection()
-    
+
     def check_phase(self):
-        print("Checking AdvancedUVMTest results")
-    
+        self.logger.info("Checking AdvancedUVMTest results")
+
     def report_phase(self):
-        print("=" * 60)
-        print("AdvancedUVMTest completed")
-        print("=" * 60)
-
-
-# Cocotb test function to run the pyuvm test
-@cocotb.test()
-async def test_advanced_uvm(dut):
-    """Cocotb test wrapper for pyuvm test."""
-    # Register the test class with uvm_root so run_test can find it
-    if not hasattr(uvm_root(), 'm_uvm_test_classes'):
-        uvm_root().m_uvm_test_classes = {}
-    uvm_root().m_uvm_test_classes["AdvancedUVMTest"] = AdvancedUVMTest
-    # Use uvm_root to run the test properly (executes all phases in hierarchy)
-    await uvm_root().run_test("AdvancedUVMTest")
-
-
-if __name__ == "__main__":
-    print("This is a pyuvm advanced UVM test.")
-    print("To run with cocotb, use the Makefile in the test directory.")
-
+        self.logger.info("=" * 60)
+        self.logger.info("AdvancedUVMTest completed")
+        self.logger.info("=" * 60)

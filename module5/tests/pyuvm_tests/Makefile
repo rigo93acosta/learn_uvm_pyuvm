@@ -18,6 +18,8 @@ TEST ?= test_advanced_uvm
 MODULE = $(TEST)
 TOPLEVEL = multi_channel
 COCOTB_REDUCED_LOG_FMT = 1
+WAVES = 1
+EXTRA_ARGS += --trace
 
 # Include cocotb makefile
 include $(shell cocotb-config --makefiles)/Makefile.sim

@@ -339,6 +339,129 @@ def write(self, txn):
 
 **Qué le dice este plan al equipo cuando llega a 100%:** que se probaron ventanas en el borde (incluida la que puede dar conteo 0), que el off-by-one en el límite ventana/edge fue ejercitado para ambos canales, que `start` y `reset` fueron enviados a propósito durante `busy` para confirmar que se ignoran, y que los dos canales lentos se corrieron con relaciones de frecuencia distintas entre sí — no solo que "se corrieron varios tests y no hubo error", que es la diferencia central entre coverage-driven verification y simplemente correr tests hasta cansarse.
 
+## Register Model
+
+### Qué hace el ejemplo
+
+El archivo `module5/examples/register_model/register_model_example.py` muestra un **modelo conceptual de registros** en pyuvm. No implementa un UVM RAL completo; usa clases Python simples para enseñar la idea central.
+
+El script demuestra:
+
+- Un mirror de registros guardado en un diccionario Python (`address -> value`).
+- Operaciones tipo frontdoor con `write()` y `read()`.
+- Operaciones tipo backdoor con `poke()` y `peek()`.
+- Una `RegisterTransaction` que representa accesos de lectura/escritura.
+- Una `RegisterSequence` que genera operaciones de registro.
+- Un `RegisterDriver` que consume esas transacciones desde el sequencer.
+- Un `RegisterAgent` que agrupa driver, sequencer y modelo de registros.
+- Un `RegisterModelTest` que ejercita accesos directos al modelo y luego arranca una secuencia.
+
+Flujo simplificado:
+
+```text
+RegisterModelTest.run_phase()
+        │
+        ├─ usa env.agent.reg_model.write/read/peek/poke directamente
+        │
+        └─ arranca RegisterSequence sobre env.agent.seqr
+                  │
+                  └─ RegisterDriver recibe RegisterTransaction por seq_item_port
+```
+
+### Qué no es este ejemplo
+
+Este archivo no es una implementación completa de UVM RAL. No tiene:
+
+- `uvm_reg`, `uvm_reg_field`, `uvm_reg_block` reales.
+- Mapas jerárquicos complejos.
+- Campos con máscaras, shifts y permisos por bit.
+- Reset values formales por campo.
+- Adapter real entre operación de registro y transacción de bus.
+- Predictor conectado a un monitor para actualizar el mirror desde tráfico observado.
+- Comparación automática entre mirror, desired value y valor leído del DUT.
+
+Es deliberadamente pequeño para concentrarse en el patrón pyuvm: sequence → sequencer → driver y una abstracción de registros accesible desde el environment.
+
+### UVM RAL vs Python/pyuvm
+
+UVM RAL en SystemVerilog existe porque SV necesita una infraestructura formal para describir registros, campos, mapas, adapters, predictors, factory, macros y políticas de acceso dentro de las restricciones del lenguaje.
+
+En Python no es necesario copiar esa arquitectura literalmente. Por las libertades del lenguaje, muchas veces es más simple y mantenible crear una herramienta propia de `RegMap` que cumpla el propósito práctico:
+
+- describir registros y campos;
+- conocer direcciones, offsets, masks, resets y permisos;
+- proveer `read()`, `write()`, `peek()` y `poke()`;
+- mantener un mirror;
+- convertir accesos de registro en transacciones de bus;
+- actualizar el mirror desde un predictor conectado al monitor.
+
+La equivalencia mental no debería ser "replicar UVM RAL clase por clase", sino preservar las garantías útiles: mirror confiable, acceso por nombre/campo, chequeo de permisos, frontdoor/backdoor y predicción desde tráfico real.
+
+### RegMap propio desde JSON/YAML
+
+Un enfoque común en proyectos Python/pyuvm es describir el mapa de registros en una fuente externa y cargarlo/generarlo:
+
+```text
+JSON/YAML/SystemRDL/HJSON
+        │
+        └─ RegMap / RegBlock / Reg / Field
+                  │
+                  ├─ mirror + reset values + masks + access policy
+                  ├─ frontdoor adapter hacia bus transaction
+                  ├─ backdoor access si existe
+                  └─ predictor actualiza mirror desde tráfico observado
+```
+
+Ejemplo de uso deseable en un test:
+
+```python
+reg_model.control.write(0x1)
+status = reg_model.status.read()
+
+reg_model.map.write("CONTROL", 0x1)
+value = reg_model.map.read("STATUS")
+
+reg_model.fields.control.enable.set(1)
+reg_model.update()
+```
+
+La fuente podría ser algo simple:
+
+```json
+{
+  "registers": [
+    {
+      "name": "CONTROL",
+      "offset": "0x0000",
+      "reset": "0x00",
+      "access": "RW",
+      "fields": [
+        {"name": "enable", "lsb": 0, "width": 1, "access": "RW"},
+        {"name": "mode", "lsb": 1, "width": 2, "access": "RW"}
+      ]
+    },
+    {
+      "name": "STATUS",
+      "offset": "0x0004",
+      "reset": "0x00",
+      "access": "RO",
+      "fields": [
+        {"name": "ready", "lsb": 0, "width": 1, "access": "RO"}
+      ]
+    }
+  ]
+}
+```
+
+Para un entorno pequeño, JSON/YAML propio suele ser suficiente. Para flujos más formales o interoperables, conviene mirar SystemRDL/PeakRDL, HJSON tipo OpenTitan `reggen`, o IP-XACT si el proyecto ya lo usa.
+
+### Notas de cambios hechos
+
+- Se aclaró en `register_model_example.py` que el ejemplo es conceptual y didáctico.
+- Se agregó esta sección en `Notes/Note_M5.md` como explicación principal del modelo de registros.
+- Se documentó que un `RegMap` propio generado desde JSON/YAML/SystemRDL/HJSON es una arquitectura válida y común en Python/pyuvm.
+- Se mantuvo el código del ejemplo intencionalmente simple para no mezclar la enseñanza de pyuvm con la generación completa de mapas de registros.
+
 ## Object Configuration
 
 Crear configuración compleja de forma centralizada y jerárquica, sin tener que pasar referencias a mano entre componentes. En este ejemplo, el `EnvConfig` contiene la configuración global del environment y, dentro de él, dos objetos `AgentConfig`: uno para `master_agent` y otro para `slave_agent`.

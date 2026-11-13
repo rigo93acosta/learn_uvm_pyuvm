@@ -1,23 +1,9 @@
-# Makefile for virtual_sequences example
-# Usage: make SIM=verilator
+# Makefile for the virtual_sequences example
+# Usage: make            (VHDL on GHDL)   |  make WAVES=1  |  make SIM=verilator
+# See common.mk at the repository root for all options.
 
-# Default simulator
-SIM ?= verilator
-
-# Python test file
-PYTHON_FILES = virtual_sequence_example.py
-
-# Verilog files (using simple DUT for UVM pattern demonstration)
-VERILOG_SOURCES = ../../dut/advanced/multi_channel.v
-VERILOG_FILES = $(VERILOG_SOURCES)
-
-# Cocotb variables
-MODULE = virtual_sequence_example
+MODULE   = virtual_sequence_example
 TOPLEVEL = multi_channel
-COCOTB_REDUCED_LOG_FMT = 1
-WAVES = 1
-EXTRA_ARGS += --trace --trace-structs
-
-# Include cocotb makefile
-include $(shell cocotb-config --makefiles)/Makefile.sim
-
+DUT_DIR  = ../../dut/advanced
+WAVES    = 1
+include ../../../common.mk

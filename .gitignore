@@ -6,3 +6,25 @@ module*/tests/**/results.xml
 *.vcd
 *.fst
 __pycache__/
+*.ghw
+# GHDL (LLVM/GCC backend) elaboration output, left next to the Makefile
+e~*.o
+module*/examples/*/adder
+module*/examples/*/simple_register
+module*/examples/*/simple_interface
+module*/examples/*/multi_channel
+module*/examples/*/axi4_lite_slave
+module*/examples/*/simple_dma
+module*/examples/*/uart
+module*/tests/*/and_gate
+module*/tests/*/counter
+module*/tests/*/simple_register
+module*/tests/*/shift_register
+module*/tests/*/simple_fsm
+module*/tests/*/simple_fifo
+module*/tests/*/adder
+module*/tests/*/simple_interface
+module*/tests/*/multi_channel
+module*/tests/*/axi4_lite_slave
+module*/tests/*/simple_dma
+module*/tests/*/lossy_channel

@@ -1,21 +1,9 @@
-# Makefile for factory example
-# Usage: make SIM=verilator
+# Makefile for the factory example
+# Usage: make            (VHDL on GHDL)   |  make WAVES=1  |  make SIM=verilator
+# See common.mk at the repository root for all options.
 
-# Default simulator
-SIM ?= verilator
-
-# Python test file
-PYTHON_FILES = factory_example.py
-
-# Verilog files (using simple DUT for UVM pattern demonstration)
-VERILOG_SOURCES = ../../dut/simple_blocks/adder.v
-VERILOG_FILES = $(VERILOG_SOURCES)
-
-# Cocotb variables
-MODULE = factory_example
+MODULE   = factory_example
 TOPLEVEL = adder
-COCOTB_REDUCED_LOG_FMT = 1
+DUT_DIR  = ../../dut/simple_blocks
 
-# Include cocotb makefile
-include $(shell cocotb-config --makefiles)/Makefile.sim
-
+include ../../../common.mk

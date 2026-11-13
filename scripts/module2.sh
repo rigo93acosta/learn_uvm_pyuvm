@@ -28,7 +28,7 @@ RUN_RESET_PATTERNS=true
 RUN_COMMON_PATTERNS=true
 RUN_COCOTB_TESTS=true
 USE_VENV=true
-SIMULATOR="verilator"
+SIMULATOR="ghdl"
 
 # Function to print colored output
 print_status() {
@@ -70,7 +70,7 @@ OPTIONS:
     Environment:
         --venv DIR            Virtual environment directory (default: .venv)
         --no-venv             Don't use virtual environment
-        --sim SIMULATOR       Simulator to use (default: verilator)
+        --sim SIMULATOR       Simulator to use (default: ghdl, VHDL DUTs)
     
     Other:
         --help, -h            Show this help message

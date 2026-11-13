@@ -1,21 +1,9 @@
-# Makefile for register_model example
-# Usage: make SIM=verilator
+# Makefile for the register_model example
+# Usage: make            (VHDL on GHDL)   |  make WAVES=1  |  make SIM=verilator
+# See common.mk at the repository root for all options.
 
-# Default simulator
-SIM ?= verilator
-
-# Python test file
-PYTHON_FILES = register_model_example.py
-
-# Verilog files (using simple DUT for UVM pattern demonstration)
-VERILOG_SOURCES = ../../dut/advanced/multi_channel.v
-VERILOG_FILES = $(VERILOG_SOURCES)
-
-# Cocotb variables
-MODULE = register_model_example
+MODULE   = register_model_example
 TOPLEVEL = multi_channel
-COCOTB_REDUCED_LOG_FMT = 1
+DUT_DIR  = ../../dut/advanced
 
-# Include cocotb makefile
-include $(shell cocotb-config --makefiles)/Makefile.sim
-
+include ../../../common.mk

@@ -1,32 +1,20 @@
-# Makefile for protocols examples (i2c, spi, uart)
-# Usage: make SIM=verilator MODULE=i2c_example
-#        make SIM=verilator MODULE=spi_example  
-#        make SIM=verilator MODULE=uart_example
+# Makefile for the protocol examples (i2c, spi, uart)
+# Usage: make MODULE=uart_example | make MODULE=spi_example | make MODULE=i2c_example
+#        (VHDL on GHDL by default; add SIM=verilator for the legacy Verilog DUT)
+# See common.mk at the repository root for all options.
 
-# Default simulator
-SIM ?= verilator
-
-# Test module to run (must be set)
+# Example to run
 MODULE ?= i2c_example
 
-# Python test file (based on MODULE)
-PYTHON_FILES = $(MODULE).py
-
-# Verilog files (uart uses uart.v, others use simple_dma.v)
+# Only the UART has a real DUT. The SPI and I2C examples do not drive any
+# signal yet, so they run on top of simple_dma just to have a simulator
+# (see docs/ROADMAP_es.md, Module 7).
 ifeq ($(MODULE),uart_example)
-    VERILOG_SOURCES = ../../dut/protocols/uart.v
-    VERILOG_FILES = $(VERILOG_SOURCES)
-    TOPLEVEL = uart
+TOPLEVEL = uart
+DUT_DIR  = ../../dut/protocols
 else
-    VERILOG_SOURCES = ../../dut/dma/simple_dma.v
-    VERILOG_FILES = $(VERILOG_SOURCES)
-    TOPLEVEL = simple_dma
+TOPLEVEL = simple_dma
+DUT_DIR  = ../../dut/dma
 endif
 
-# Cocotb variables - use COCOTB_TEST_MODULES instead of deprecated MODULE
-COCOTB_TEST_MODULES = $(MODULE)
-COCOTB_REDUCED_LOG_FMT = 1
-
-# Include cocotb makefile
-include $(shell cocotb-config --makefiles)/Makefile.sim
-
+include ../../../common.mk

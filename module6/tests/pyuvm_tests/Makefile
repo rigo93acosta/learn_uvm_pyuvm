@@ -1,24 +1,12 @@
 # Makefile for Module 6 pyuvm tests
-# Usage: make SIM=verilator TEST=test_complex_testbench
+# Usage: make TEST=test_complex_testbench     (VHDL on GHDL)  |  make WAVES=1  |  make SIM=verilator
+# See common.mk at the repository root for all options.
 
-# Default simulator
-SIM ?= icarus
-
-# Python files
-PYTHON_FILES = test_complex_testbench.py
-
-# Verilog files
-VERILOG_SOURCES = ../../dut/protocols/axi4_lite_slave.v
-VERILOG_FILES = $(VERILOG_SOURCES)
-
-# Test to run
+# Test to run (Python module name)
 TEST ?= test_complex_testbench
 
-# Cocotb variables
-MODULE = $(TEST)
+MODULE   = $(TEST)
 TOPLEVEL = axi4_lite_slave
-COCOTB_REDUCED_LOG_FMT = 1
+DUT_DIR  = ../../dut/protocols
 
-# Include cocotb makefile
-include $(shell cocotb-config --makefiles)/Makefile.sim
-
+include ../../../common.mk

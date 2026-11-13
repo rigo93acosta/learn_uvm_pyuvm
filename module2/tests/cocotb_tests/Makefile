@@ -1,50 +1,35 @@
 # Makefile for Module 2 cocotb tests
-# Usage: make SIM=verilator test_simple_register
+# Usage: make TEST=test_simple_register | test_shift_register | test_simple_fsm
+#        make test_all
+#        (VHDL on GHDL by default; add SIM=verilator for the legacy Verilog DUT)
+# See common.mk at the repository root for all options.
 
-# Default simulator
-SIM ?= verilator
-
-# Python files
-PYTHON_FILES = test_simple_register.py test_shift_register.py test_simple_fsm.py
-
-# Test to run
+# Test to run (Python module name). The DUT is the test name without "test_".
 TEST ?= test_simple_register
 
-# Cocotb variables
-MODULE = $(TEST)
-TOPLEVEL = $(shell echo $(TEST) | sed 's/test_//')
-COCOTB_REDUCED_LOG_FMT = 1
-WAVES = 1
-COMPILE_ARGS += --coverage --coverage-line --coverage-toggle
-EXTRA_ARGS += --trace --trace-structs
+MODULE   = $(TEST)
+TOPLEVEL = $(patsubst test_%,%,$(TEST))
+WAVES    = 1
 
-# Verilog files - select based on test
-ifeq ($(TEST),test_simple_register)
-VERILOG_SOURCES = ../../dut/registers/simple_register.v
-else ifeq ($(TEST),test_shift_register)
-VERILOG_SOURCES = ../../dut/registers/shift_register.v
-else ifeq ($(TEST),test_simple_fsm)
-VERILOG_SOURCES = ../../dut/state_machines/simple_fsm.v
+# DUT directory - selected by test
+ifeq ($(TEST),test_simple_fsm)
+DUT_DIR = ../../dut/state_machines
+else ifeq ($(TEST),test_simple_fifo)
+DUT_DIR = ../../dut/fifos
 else
-VERILOG_SOURCES = ../../dut/registers/simple_register.v ../../dut/registers/shift_register.v ../../dut/state_machines/simple_fsm.v
+DUT_DIR = ../../dut/registers
 endif
-VERILOG_FILES = $(VERILOG_SOURCES)
 
-# Include cocotb makefile
-include $(shell cocotb-config --makefiles)/Makefile.sim
+# HDL code coverage is a Verilator feature: make SIM=verilator HDL_COVERAGE=1
+
+include ../../../common.mk
 
 # Helper targets
 .PHONY: test_all
 test_all:
+	$(MAKE) clean
 	$(MAKE) TEST=test_simple_register
+	$(MAKE) clean
 	$(MAKE) TEST=test_shift_register
+	$(MAKE) clean
 	$(MAKE) TEST=test_simple_fsm
-
-.PHONY: clean
-clean::
-	rm -rf __pycache__
-	rm -rf sim_build
-	rm -rf results.xml
-	rm -rf *.vcd
-	rm -rf *.log
-

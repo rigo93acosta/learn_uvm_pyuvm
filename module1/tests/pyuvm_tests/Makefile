@@ -1,24 +1,13 @@
 # Makefile for Module 1 pyuvm tests
-# Usage: make SIM=verilator test_and_gate_uvm
+# Usage: make TEST=test_and_gate_uvm     (VHDL on GHDL)  |  make WAVES=1  |  make SIM=verilator
+# See common.mk at the repository root for all options.
 
-# Default simulator
-SIM ?= verilator
-
-# Python files
-PYTHON_FILES = test_and_gate_uvm.py
-
-# Verilog files
-VERILOG_SOURCES = ../../dut/simple_gates/and_gate.v
-
-# Test to run
+# Test to run (Python module name)
 TEST ?= test_and_gate_uvm
 
-# Cocotb variables
-MODULE = $(TEST)
+MODULE   = $(TEST)
 TOPLEVEL = and_gate
-COCOTB_REDUCED_LOG_FMT = 1
-COMPILE_ARGS += --coverage --coverage-line --coverage-toggle
-# Include cocotb makefile
-include $(shell cocotb-config --makefiles)/Makefile.sim
+DUT_DIR  = ../../dut/simple_gates
 
-# Note: clean target is provided by included Makefile.sim
+# HDL code coverage is a Verilator feature: make SIM=verilator HDL_COVERAGE=1
+include ../../../common.mk

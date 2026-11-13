@@ -1,31 +1,21 @@
 # Makefile for Module 1 cocotb tests
-# Usage: make SIM=verilator test_and_gate
+# Usage: make TEST=test_and_gate | make TEST=test_counter | make test_all
+#        (VHDL on GHDL by default; add SIM=verilator for the legacy Verilog DUT)
+# See common.mk at the repository root for all options.
 
-# Default simulator
-SIM ?= verilator
-
-# Python files
-PYTHON_FILES = test_and_gate.py test_counter.py
-
-# Verilog files
-VERILOG_SOURCES = ../../dut/simple_gates/and_gate.v ../../dut/simple_gates/counter.v
-
-# Test to run
+# Test to run (Python module name). The DUT is the test name without "test_".
 TEST ?= test_and_gate
 
-# Cocotb variables
-MODULE = $(TEST)
-TOPLEVEL = $(shell echo $(TEST) | sed 's/test_//')
-COCOTB_REDUCED_LOG_FMT = 1
+MODULE   = $(TEST)
+TOPLEVEL = $(patsubst test_%,%,$(TEST))
+DUT_DIR  = ../../dut/simple_gates
 
-# Include cocotb makefile
-include $(shell cocotb-config --makefiles)/Makefile.sim
+include ../../../common.mk
 
 # Helper targets
 .PHONY: test_all
 test_all:
+	$(MAKE) clean
 	$(MAKE) TEST=test_and_gate
+	$(MAKE) clean
 	$(MAKE) TEST=test_counter
-
-# Note: clean target is provided by included Makefile.sim
-

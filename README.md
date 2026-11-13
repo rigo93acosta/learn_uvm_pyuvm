@@ -1,13 +1,15 @@
 # Learn UVM with pyuvm
 
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.13%2B-blue.svg)](https://www.python.org/)
 [![UVM](https://img.shields.io/badge/UVM-1.2-orange.svg)](https://www.accellera.org/)
 [![pyuvm](https://img.shields.io/badge/pyuvm-Latest-green.svg)](https://pyuvm.readthedocs.io/)
-[![cocotb](https://img.shields.io/badge/cocotb-Latest-blue.svg)](https://docs.cocotb.org/)
-[![Verilator](https://img.shields.io/badge/Verilator-Latest-red.svg)](https://www.veripool.org/verilator/)
+[![cocotb](https://img.shields.io/badge/cocotb-1.9.2-blue.svg)](https://docs.cocotb.org/)
+[![GHDL](https://img.shields.io/badge/GHDL-VHDL-red.svg)](https://ghdl.github.io/ghdl/)
 
 A comprehensive, modular learning path for mastering **UVM (Universal Verification Methodology)** and **pyuvm** (Python UVM implementation) with progressive complexity levels. This project provides a complete educational resource with examples, testbenches, and documentation covering all aspects of UVM verification.
+
+> **Project status.** The DUTs are now written in **VHDL** and simulated with **GHDL** by default; the original Verilog files are kept as a legacy option (`make SIM=verilator`). See [docs/VHDL_GHDL_es.md](docs/VHDL_GHDL_es.md) for what changes, and [docs/ROADMAP_es.md](docs/ROADMAP_es.md) for an honest review of what is solved, what is still open and where the course is heading.
 
 ## 📋 Table of Contents
 
@@ -40,7 +42,7 @@ This project is a complete educational resource for learning UVM verification me
 - **Open Source**: Free and accessible to everyone
 - **Python Syntax**: Easier to learn and read than SystemVerilog
 - **Full UVM 1.2**: Complete implementation of the IEEE 1800.2 standard
-- **Works with Verilator**: Fast, open-source simulation
+- **Works with open-source simulators**: GHDL for VHDL (default here), Verilator/Icarus for Verilog
 - **Better Tooling**: Python IDE support, debugging, testing frameworks
 - **Modern Development**: Async/await, type hints, comprehensive error handling
 
@@ -50,7 +52,7 @@ This project is a complete educational resource for learning UVM verification me
 - ✅ **Progressive Learning**: 8 modules from beginner to advanced
 - ✅ **Practical Examples**: Real-world verification scenarios
 - ✅ **Automated Setup**: One-command installation scripts
-- ✅ **Multiple Simulators**: Support for Verilator and other open-source simulators
+- ✅ **Multiple Simulators**: GHDL (VHDL, default) plus Verilator/Icarus for the legacy Verilog DUTs
 - ✅ **Virtual Environment Support**: Isolated Python environments
 - ✅ **Git Submodules**: Easy tool management
 - ✅ **Comprehensive Documentation**: Detailed guides for every concept
@@ -61,7 +63,7 @@ This project is a complete educational resource for learning UVM verification me
 
 ### Required Knowledge
 
-- **Hardware Description Languages**: Basic understanding of Verilog/SystemVerilog
+- **Hardware Description Languages**: Basic understanding of VHDL (or Verilog, see the translation table in [docs/VHDL_GHDL_es.md](docs/VHDL_GHDL_es.md))
 - **Python Programming**: Intermediate level (classes, decorators, async/await)
 - **Digital Design Concepts**: Flip-flops, state machines, buses
 - **Verification Basics**: Testbenches, assertions, coverage (helpful but not required)
@@ -69,7 +71,8 @@ This project is a complete educational resource for learning UVM verification me
 ### System Requirements
 
 - **Operating System**: Linux, macOS, or Windows (WSL2 recommended)
-- **Python**: 3.10 or higher
+- **Python**: 3.13 or higher (see `pyproject.toml`)
+- **Simulator**: GHDL on the `PATH` (for example from [oss-cad-suite](https://github.com/YosysHQ/oss-cad-suite-build)); Verilator only for the legacy Verilog DUTs
 - **Memory**: Minimum 4GB RAM (8GB+ recommended)
 - **Disk Space**: ~2GB for tools and dependencies
 
@@ -121,16 +124,19 @@ learn_uvm_pyuvm/
 │   ├── MODULE6.md            # Complex testbenches
 │   ├── MODULE7.md            # Real-world applications
 │   ├── MODULE8.md            # UVM miscellaneous utilities
-│   ├── STUDY.md              # Complete study plan
-│   ├── PYTHON_VERILOG_INTERACTION.md  # Python-Verilog interaction guide
-│   ├── COVERAGE_CHECKLIST.md # Coverage verification
-│   ├── IEEE_1800_2_COVERAGE.md # IEEE standard coverage
+│   ├── MODULE9_es.md         # Reactive stimulus (Spanish only)
+│   ├── MODULE*_es.md         # Spanish version of each module guide
+│   ├── ROADMAP_es.md         # Project status, known gaps and direction
+│   ├── VHDL_GHDL_es.md       # VHDL DUTs and GHDL: usage and differences
+│   ├── PYTHON_VERILOG_INTERACTION.md  # Python-HDL interaction guide (Verilog snippets)
+│   ├── IEEE_1800_2.md        # IEEE 1800.2 standard mapped to the modules
 │   └── GLOSSARY.md           # UVM terminology
 │
-├── module0/                   # Installation scripts and tools
+├── Notes/                     # Personal study notes per module (Spanish)
+├── common.mk                  # Shared cocotb build rules included by every Makefile
 ├── module1/                   # Python basics and verification fundamentals
 │   ├── examples/             # Python examples
-│   ├── dut/                   # Design Under Test (Verilog)
+│   ├── dut/                   # Design Under Test (VHDL, plus legacy Verilog)
 │   └── tests/                 # Testbenches (cocotb and pyuvm)
 ├── module2/                   # cocotb fundamentals
 ├── module3/                   # UVM basics
@@ -139,6 +145,7 @@ learn_uvm_pyuvm/
 ├── module6/                   # Complex testbenches
 ├── module7/                   # Real-world applications
 ├── module8/                   # UVM utilities
+├── module9/                   # Reactive stimulus: ARQ over a lossy channel
 │
 ├── scripts/                   # Automation scripts
 │   ├── module0.sh            # Install all tools
@@ -148,9 +155,7 @@ learn_uvm_pyuvm/
 │   └── uninstall_*.sh        # Tool uninstallers
 │
 ├── tools/                     # Git submodules for tools
-│   ├── verilator/            # Verilator simulator
-│   ├── cocotb/               # cocotb framework
-│   └── pyuvm/                # pyuvm library
+│   └── verilator/            # Verilator simulator (optional, legacy Verilog flow)
 │
 └── README.md                  # This file
 ```
@@ -161,7 +166,8 @@ The `docs/` directory contains comprehensive documentation for the entire learni
 
 ### Core Documentation
 
-- **[STUDY.md](docs/STUDY.md)**: Complete study plan with learning path, schedule, and resources
+- **[ROADMAP_es.md](docs/ROADMAP_es.md)**: Project status, known gaps in the DUTs and guides, and a per-module plan with pass/fail criteria
+- **[VHDL_GHDL_es.md](docs/VHDL_GHDL_es.md)**: Running the VHDL DUTs on GHDL and what changes for the Python testbench
 - **[PYTHON_VERILOG_INTERACTION.md](docs/PYTHON_VERILOG_INTERACTION.md)**: Detailed guide on Python-Verilog interaction using cocotb
 
 ### Module Documentation
@@ -214,10 +220,14 @@ Each module has a dedicated guide with examples, exercises, and detailed explana
   - Pools, queues, string/math/random utilities
   - Utility integration patterns
 
+- **[MODULE9_es.md](docs/MODULE9_es.md)**: Reactive Stimulus (Spanish)
+  - Sequences that react to what the monitor observes
+  - Selective-repeat ARQ over a lossy channel, several item types in one driver
+  - DUT reference model, functional coverage, exercises per UVM capability
+
 ### Reference Documentation
 
-- **[COVERAGE_CHECKLIST.md](docs/COVERAGE_CHECKLIST.md)**: Verification checklist for all IEEE 1800.2 sections
-- **[IEEE_1800_2_COVERAGE.md](docs/IEEE_1800_2_COVERAGE.md)**: Detailed mapping of IEEE standard to modules
+- **[IEEE_1800_2.md](docs/IEEE_1800_2.md)**: Detailed mapping of the IEEE standard to modules
 - **[GLOSSARY.md](docs/GLOSSARY.md)**: Comprehensive glossary of UVM terms and concepts
 
 ## 🎓 Modules
@@ -226,7 +236,8 @@ Each module has a dedicated guide with examples, exercises, and detailed explana
 **Complexity**: Beginner
 
 Set up your verification environment with all required tools:
-- Verilator (simulator)
+- GHDL (VHDL simulator, default; install it separately, e.g. oss-cad-suite — `module0.sh` only installs Verilator)
+- Verilator (optional, for the legacy Verilog DUTs)
 - cocotb (coroutine-based testbench framework)
 - pyuvm (Python UVM implementation)
 
@@ -337,6 +348,18 @@ Master UVM utility classes:
 
 **Quick Start**: `./scripts/module8.sh`
 
+### Module 9: Reactive Stimulus
+**Complexity**: Advanced
+
+Closed-loop testbench where the observed DUT output drives the next stimulus:
+- Reactive sequence fed through an analysis FIFO in the sequencer
+- Selective-repeat ARQ (window, timeout, retransmission) over a lossy VHDL channel
+- Reference model of the DUT, independent scoreboard checks, functional coverage
+- Configuration object via ConfigDB and factory overrides per test
+- Exercises grouped by UVM capability (factory, layering, virtual sequences, phases, RAL)
+
+**Quick Start**: `cd module9/tests/pyuvm_tests && make`
+
 ## 🔧 Installation
 
 ### Automated Installation (Recommended)
@@ -396,14 +419,20 @@ source .venv/bin/activate
 cd module1/examples/python_basics
 python3 transaction.py
 
-# Run cocotb test
+# Run cocotb test (VHDL DUT on GHDL, the default)
 cd module1/tests/cocotb_tests
-make SIM=verilator TEST=test_and_gate
+make TEST=test_and_gate
 
 # Run pyuvm test
 cd module1/tests/pyuvm_tests
-make SIM=verilator TEST=test_and_gate_uvm
+make TEST=test_and_gate_uvm
+
+# Same test with waveforms, or against the legacy Verilog DUT
+make TEST=test_and_gate_uvm WAVES=1
+make clean && make TEST=test_and_gate_uvm SIM=verilator
 ```
+
+Every Makefile is a few lines that include `common.mk`; run `make clean` when switching simulator or `TEST`.
 
 When using `uv`, prefix the same make commands with `uv run`:
 
@@ -522,7 +551,7 @@ For questions, issues, or contributions:
 
 1. Check the [documentation](docs/) first
 2. Review the [GLOSSARY.md](docs/GLOSSARY.md) for terminology
-3. Check [COVERAGE_CHECKLIST.md](docs/COVERAGE_CHECKLIST.md) for module coverage
+3. Check [ROADMAP_es.md](docs/ROADMAP_es.md) for known gaps and module status
 4. Open an issue for bugs or feature requests
 
 ## 📊 Project Statistics
